@@ -43,6 +43,7 @@ import {
 import { emailAndPasswordEnabled } from "./email-password";
 import { GROK_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
+import { isAuthEnabled } from "./open-access";
 import {
   GROK_ISSUER_DEFAULT,
   PREVIEW_ALLOWED_HOSTS,
@@ -73,9 +74,9 @@ const env = (key: string): string | undefined => {
   return value ? value : undefined;
 };
 
-// Explicit off-switch for temporary open demos (shared admin dev-user).
-// Set VITE_AUTH_ENABLED=false to disable login; re-enable with true / unset + redeploy.
-const authDisabled = env("VITE_AUTH_ENABLED") === "false";
+// Off-switch: TEMPORARY_OPEN_ACCESS (open-access.ts) and/or VITE_AUTH_ENABLED=false.
+// See src/lib/auth/open-access.ts to re-enable real login/OAuth.
+const authDisabled = !isAuthEnabled();
 
 // Broker federation creds: the deployer injects a per-app client when deployed;
 // otherwise fall back to the shared live-preview client, which the broker accepts

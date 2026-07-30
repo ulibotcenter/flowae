@@ -2,6 +2,7 @@ import { genericOAuthClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { GROK_PROVIDERS } from "./providers";
 import { DEMO_MODE_STORAGE_KEY } from "@/lib/demo-config";
+import { isAuthEnabled } from "./open-access";
 
 /**
  * Better Auth client for this React SPA (browser-side).
@@ -25,20 +26,11 @@ export const authClient = createAuthClient({
 });
 
 /**
- * True when sign-in UI should be shown. On by default (preview via the baked
- * preview client, deployed apps via the injected per-app client).
- *
- * ## Desactivar auth temporalmente (demo en Vercel sin OAuth)
- *   VITE_AUTH_ENABLED=false
- * (en Vercel: Environment Variables + **Rebuild** — es variable Vite de build)
- * Entra con el usuario compartido admin `dev-user` (ver `use-current-user`).
- *
- * ## Reactivar auth
- *   - Quitar `VITE_AUTH_ENABLED`, o
- *   - Poner `VITE_AUTH_ENABLED=true`
- * y volver a desplegar. El código de Better Auth / login no se borra.
+ * True when sign-in UI should be shown.
+ * Controlled by `./open-access` (TEMPORARY_OPEN_ACCESS + VITE_AUTH_ENABLED).
+ * See that file to re-enable auth after the firm demo.
  */
-export const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== "false";
+export const authEnabled = isAuthEnabled();
 
 /** The upstream providers to render sign-in buttons for. */
 export { GROK_PROVIDERS };

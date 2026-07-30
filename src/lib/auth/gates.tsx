@@ -8,7 +8,8 @@ import { useCurrentUser, useCurrentUserState } from "./use-current-user";
  *
  * Auth is ON by default (including the sandbox live preview, which does real
  * sign-in). Visitors are signed out until they authenticate. The shared dev
- * user only appears when auth is explicitly disabled (`VITE_AUTH_ENABLED=false`).
+ * user only appears when auth is explicitly disabled (`VITE_AUTH_ENABLED=false`
+ * or TEMPORARY_OPEN_ACCESS in `open-access.ts`).
  * While the session is still resolving, gates that care about signed-out state
  * render nothing so there's no signed-out flash on hard reload.
  */
@@ -37,10 +38,12 @@ export function SignedOut({ children }: { children: ReactNode }) {
  * `window.location` reload). A hard navigation re-bootstraps the SPA and re-runs
  * session loading, which feels like a second "Loading…" on /login.
  *
- * Guard routes by waiting out `isPending` first (see `use-current-user`), then
- * render this.
+ * When auth is disabled (open access), sends visitors to the panel instead.
  */
 export function RedirectToSignIn({ to = SIGN_IN_PATH }: { to?: string }) {
+  if (!authEnabled) {
+    return <Navigate to="/" />;
+  }
   return <Navigate to={to} />;
 }
 

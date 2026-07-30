@@ -2,8 +2,11 @@
  * Client-side one-click demo login.
  * Ensures the demo admin user exists (server), then signs in via Better Auth
  * email/password and stores the session bearer for live-preview iframes.
+ *
+ * When auth is temporarily disabled (open-access), just navigates to the panel
+ * without calling Better Auth (avoids Invalid origin).
  */
-import { authClient, setBearerToken } from "./client";
+import { authClient, authEnabled, setBearerToken } from "./client";
 import {
   DEMO_MODE_STORAGE_KEY,
   DEMO_USER_EMAIL,
@@ -44,8 +47,18 @@ export function clearDemoModeFlag() {
 
 /**
  * Enter demo mode: provision demo admin + seed data, then sign in without UI credentials.
+ * If auth is off (open access), redirects to the panel without Better Auth.
  */
 export async function enterDemoMode(): Promise<void> {
+  // Acceso abierto: no llamar a Better Auth (evita Invalid origin en Vercel)
+  if (!authEnabled) {
+    markDemoMode(true);
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+    return;
+  }
+
   if (!isDemoLoginEnabled()) {
     throw new Error("El modo demostración está desactivado");
   }

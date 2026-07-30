@@ -1,33 +1,46 @@
 # Auth temporalmente desactivada (acceso abierto)
 
-## Desactivar login (demo del despacho en Vercel)
+## Estado actual
 
-En el proyecto de Vercel (o entorno de despliegue), define:
+En el código, `TEMPORARY_OPEN_ACCESS = true` en:
 
-```bash
-VITE_AUTH_ENABLED=false
-```
+`src/lib/auth/open-access.ts`
 
-**Importante:** es variable de Vite → hay que **Rebuild / Redeploy** para que el cliente la lea.
+Con eso la app **no** muestra `/login` ni llama a Better Auth / OAuth.
+Todos entran al panel como **Administración** (`dev-user`).
 
-Efecto:
+Así se evita el error **Invalid origin** en `https://flowae.vercel.app` mientras se configura el broker OAuth.
 
-- No se muestra la pantalla de login ni OAuth (evita “Invalid origin”).
-- Todos los visitantes usan el usuario compartido `dev-user` con rol **Administración**.
-- Panel, Hoy, facturas y configuración se ven con permisos de admin.
-- Badge “Acceso abierto” en la interfaz.
-- El código de Better Auth / login **no se borra**; solo se desactiva.
+## Comportamiento
 
-## Reactivar autenticación real
+| Qué | Con acceso abierto |
+|-----|--------------------|
+| `/login` | Redirige al panel |
+| Rutas protegidas | Entran con admin compartido |
+| Demo | Redirige al panel sin Better Auth |
+| Badge UI | “Acceso abierto” |
 
-1. En Vercel, **elimina** `VITE_AUTH_ENABLED` o pon:
+## Cómo reactivar la autenticación real
 
-   ```bash
-   VITE_AUTH_ENABLED=true
+1. En `src/lib/auth/open-access.ts` pon:
+   ```ts
+   export const TEMPORARY_OPEN_ACCESS = false;
    ```
+2. En Vercel (opcional pero recomendado):
+   - `VITE_AUTH_ENABLED=true`  
+   - o elimina `VITE_AUTH_ENABLED=false` si la tenías
+3. Redesplega.
+4. Configura orígenes OAuth / `BETTER_AUTH_URL` para `https://flowae.vercel.app`.
 
-2. Redesplega la aplicación.
+## Solo con variable de entorno (sin tocar el flag)
 
-3. Configura orígenes OAuth / Better Auth (`BETTER_AUTH_URL`, broker Grok, etc.) para el dominio `https://flowae.vercel.app`.
+Si `TEMPORARY_OPEN_ACCESS = false`:
 
-Tras reactivar, cada usuario vuelve a iniciar sesión con su cuenta y los roles (Admin / Abogado) se aplican con normalidad.
+- `VITE_AUTH_ENABLED=false` → auth off (requiere **rebuild**)
+- sin variable o `true` → auth on
+
+## Importante
+
+- El código de Better Auth **no se borra**.
+- En acceso abierto todos los visitantes comparten el mismo admin: no usar en producción real con datos sensibles.
+- Hace falta `DATABASE_URL` en Vercel (Postgres/Neon).

@@ -108,7 +108,7 @@ var HEADERS = { TSS_SHELL: "X-TSS_SHELL" };
 * the dev styles URL for route-scoped CSS collection.
 */
 async function getStartManifest(matchedRoutes) {
-	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-16wp5oqe.mjs");
+	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-CUAHRJix.mjs");
 	const startManifest = tsrStartManifest();
 	let routes = startManifest.routes;
 	routes[rootRouteId];
@@ -130,91 +130,91 @@ async function getStartManifest(matchedRoutes) {
 var manifest = {
 	"045f821e5b99c550175d68fe51c7a9363aea8294a0758e91386c0702f302fa26": {
 		functionName: "markSentToClientFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"1901044f46103e7c9c66ed45f6efef1a8343efd22a8dec8c4ecf2f29df37628d": {
 		functionName: "getBillingBootstrap_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"2203c1e7fc584049b307518911ef2075a0fbade5e6835a0f0be69fb86a2db1ab": {
 		functionName: "sendClientEmailFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"22043478ae92c45a834ddbd031382a522dc49b13d8a37c67cda87c949abd8e86": {
 		functionName: "getHarveyStatusFn_createServerFn_handler",
-		importer: () => import("./server-fn--6eJ8pb8.mjs")
+		importer: () => import("./server-fn-Cwm2t58p.mjs")
 	},
 	"2bb98d0ad991ee3075001c853c59c9fae60cfbf3c593cd38bf4112dc506f7e27": {
 		functionName: "batchMarkSentFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"2f0a2b37fd14bc3df2a56736c3f5e0e40d28a53c1156f9013d64a4a3cf18de30": {
 		functionName: "batchRequestAdminFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"30a1c7af74e7f3cc1da1659eeff548ff88d806ac33f59c5903a85e98ff84bf79": {
 		functionName: "saveHarveyApiKeyFn_createServerFn_handler",
-		importer: () => import("./server-fn--6eJ8pb8.mjs")
+		importer: () => import("./server-fn-Cwm2t58p.mjs")
 	},
 	"366a9ac964eea89f9d3e784268679178077d477e8b4fd60ccfb1964a4530c2e0": {
 		functionName: "listInvoiceEventsFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"3e1cf16108e3dffe204e0cf9716bff62e5749e4dc5a71431510497255798cf5f": {
 		functionName: "removeLawyerFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"43c1cc3091633ce4e561e2523d92dbf06f3e8416392527d03b1b3afb3b565fb9": {
 		functionName: "createInvoiceFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"479c42948f57cb2ce1ac723ca91458345466fdd5219fdfc09fda0fe14c1c2b0e": {
 		functionName: "refreshEmailsFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"4bc80a57a7ad656a62df07d610687b26406118b05928106591377c1b8515b757": {
 		functionName: "listProfilesFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"561a5f79b607985070e782c7591116d014da2c95a45e1ced7e4ec0b61db2f265": {
 		functionName: "getExtractStatusFn_createServerFn_handler",
-		importer: () => import("./server-fn--6eJ8pb8.mjs")
+		importer: () => import("./server-fn-Cwm2t58p.mjs")
 	},
 	"5975558be30efc7ad28339731a0032e6957c5e0d8e451788acea035656db3534": {
 		functionName: "requestAdminFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"68475eddc80014473b1a0a55ae4ff6f82c90d052b485d9a05bdb8bc097d980bb": {
 		functionName: "deleteHarveyApiKeyFn_createServerFn_handler",
-		importer: () => import("./server-fn--6eJ8pb8.mjs")
+		importer: () => import("./server-fn-Cwm2t58p.mjs")
 	},
 	"6918c9235add1bfc2501b1779e5d55d0ca8d84c40740c91788be9817466891b2": {
 		functionName: "deleteInvoiceFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"6c766d6858f694877752a98bb94bf92583021cccaec280feb70be19f5ebd5d38": {
 		functionName: "sendAdminEmailFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"757887c467808cff0d07f34da25ed1971dd9b5614bea2633b0544c87dd3b9de5": {
 		functionName: "resetDemoFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"7a1e9d0adc8849ee47f13a51f287f2773739987a8d387eee99c64d3664d8fa13": {
 		functionName: "ensureDemoUserFn_createServerFn_handler",
-		importer: () => import("./demo-server-fn-DWU6bO_w.mjs")
+		importer: () => import("./demo-server-fn-DoLFx7Yh.mjs")
 	},
 	"7a5d571236a03ad2041445377eee2c7de7d7501018a4fa4a9ec71637deef7e2e": {
 		functionName: "markIssuedFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"7b14fb701cb11863714aa3e3f75353cc1bdc341529aea63d4d10f7d877f4c69b": {
 		functionName: "batchRefreshOverdueFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"a24ffb7cd0bb28ccc09b004b21ae4484121af9921a847f031c569ae14d36d4ba": {
 		functionName: "upsertLawyerFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"a44e40067f99ce36a4338e159c9342d22cb5a5badcbd17470a2fae381cd07fb3": {
 		functionName: "getDbStatusFn_createServerFn_handler",
@@ -222,35 +222,35 @@ var manifest = {
 	},
 	"bcd2db5234a6e52499312e968143e5eef093597672bca99e8cfc8c2cccddccd2": {
 		functionName: "testHarveyConnectionFn_createServerFn_handler",
-		importer: () => import("./server-fn--6eJ8pb8.mjs")
+		importer: () => import("./server-fn-Cwm2t58p.mjs")
 	},
 	"bd2a52cdf49b6c672a4e0d852e88a7a5d7c5bdd9fe06e1ea4d0511fc14dff362": {
 		functionName: "getMailStatusFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"c2fbfade57d44a4c9849c6ab76b1433f36e3b77840bb7d462c30e6e727fe87aa": {
 		functionName: "registerPaymentFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"c8ac20e3e297af7541e54e989055e573988e8b7ed3ffa71b9d9785ea1cb8b353": {
 		functionName: "updateInvoiceFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"cc9668f5a7d7ef75678ee71652375e48684a57a69dce9db85a8d33d614657c3d": {
 		functionName: "setUserRoleFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"e7f8d4b892b7deb62794395f842240cdb761b68f35b9f05365ec6843bb474f55": {
 		functionName: "updateHarveyBaseUrlFn_createServerFn_handler",
-		importer: () => import("./server-fn--6eJ8pb8.mjs")
+		importer: () => import("./server-fn-Cwm2t58p.mjs")
 	},
 	"eb4e204be12d2eeafe54f6ade6459dd9c7b03e5bb51c181599b85aa4982e9728": {
 		functionName: "saveSettingsFn_createServerFn_handler",
-		importer: () => import("./server-fns-Cpcx2L6m.mjs")
+		importer: () => import("./server-fns-By36yBSr.mjs")
 	},
 	"ed784e5864a007de5c9ab19434a9517ddb7fbb653a4310eee5c4cf1f6a1d478c": {
 		functionName: "extractConceptFn_createServerFn_handler",
-		importer: () => import("./server-fn--6eJ8pb8.mjs")
+		importer: () => import("./server-fn-Cwm2t58p.mjs")
 	}
 };
 async function getServerFnById(id, access) {
@@ -1520,7 +1520,7 @@ var getBaseManifest = getProdBaseManifest;
 var createEarlyHintsForRequest = createEarlyHintsCollector;
 async function loadEntries() {
 	const [routerEntry, startEntry, pluginAdapters] = await Promise.all([
-		import("./router-y_SjsBCp.mjs"),
+		import("./router-JKlZL5-C.mjs"),
 		import("./start-5Z2QO8AU.mjs"),
 		import("./empty-plugin-adapters-D9UWiqvJ.mjs")
 	]);
