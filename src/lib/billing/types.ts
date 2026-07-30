@@ -9,11 +9,15 @@ export type InvoiceStatus =
 
 export type RemitenteTipo = "abogado" | "administracion";
 
+export type UserRole = "admin" | "lawyer";
+
 export interface Lawyer {
   id: string;
   name: string;
   email: string;
   initials: string;
+  /** Better Auth user linked to this letrado (optional until assigned). */
+  userId?: string | null;
 }
 
 export interface FirmSettings {
@@ -25,6 +29,19 @@ export interface FirmSettings {
   defaultPaymentDays: number;
   sageNote: string;
   lexnextNote: string;
+  /** Plantilla asunto email a Admin (variables {{...}}) */
+  adminEmailSubjectTpl: string;
+  adminEmailBodyTpl: string;
+  clientEmailSubjectTpl: string;
+  clientEmailBodyTpl: string;
+}
+
+export interface UserProfile {
+  userId: string;
+  role: UserRole;
+  lawyerId: string | null;
+  email: string | null;
+  displayName: string | null;
 }
 
 export interface Invoice {
@@ -58,6 +75,11 @@ export interface Invoice {
   clientEmailBody?: string;
   clientEmailSubject?: string;
   adminEmailSubject?: string;
+  /** Momento real o simulado del envío a Admin */
+  adminEmailSentAt?: string;
+  /** Momento real o simulado del envío al cliente */
+  clientEmailSentAt?: string;
+  createdBy?: string | null;
 }
 
 export interface BillingConceptDraft {
@@ -74,6 +96,46 @@ export interface BillingConceptDraft {
   notes: string;
   sourceFile?: string;
   dueDays?: number;
+}
+
+export interface BillingBootstrap {
+  profile: UserProfile;
+  settings: FirmSettings;
+  lawyers: Lawyer[];
+  invoices: Invoice[];
+  seq: number;
+}
+
+export type InvoiceEventType =
+  | "created"
+  | "status_change"
+  | "email_admin"
+  | "email_client"
+  | "payment"
+  | "field_edit"
+  | "deleted"
+  | "note";
+
+export interface InvoiceEvent {
+  id: string;
+  invoiceId: string;
+  eventType: InvoiceEventType;
+  summary: string;
+  detail?: string | null;
+  actorUserId?: string | null;
+  actorName?: string | null;
+  actorEmail?: string | null;
+  createdAt: string;
+}
+
+export type EmailSendMode = "resend" | "simulated";
+
+export interface EmailSendResult {
+  mode: EmailSendMode;
+  invoice: Invoice;
+  to: string;
+  subject: string;
+  message: string;
 }
 
 export const STATUS_LABELS: Record<InvoiceStatus, string> = {
@@ -95,3 +157,8 @@ export const STATUS_ORDER: InvoiceStatus[] = [
   "pagada",
   "vencida",
 ];
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  admin: "Administración",
+  lawyer: "Abogado",
+};

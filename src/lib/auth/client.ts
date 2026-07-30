@@ -1,6 +1,7 @@
 import { genericOAuthClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { GROK_PROVIDERS } from "./providers";
+import { DEMO_MODE_STORAGE_KEY } from "@/lib/demo-config";
 
 /**
  * Better Auth client for this React SPA (browser-side).
@@ -50,7 +51,8 @@ export function getBearerToken(): string | null {
   }
 }
 
-function setBearerToken(token: string | null): void {
+/** Exported for demo login + OAuth popup hand-off. */
+export function setBearerToken(token: string | null): void {
   if (typeof window === "undefined") return;
   try {
     if (token) window.sessionStorage.setItem(BEARER_KEY, token);
@@ -113,6 +115,11 @@ export async function signIn(
     }
   }
   setBearerToken(null);
+  try {
+    window.sessionStorage.removeItem(DEMO_MODE_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
 
   if (inLivePreview()) {
     if (!popup) throw new Error("Pop-up blocked — allow pop-ups for sign-in");
@@ -172,31 +179,31 @@ function waitForPopupToken(popup: Window): Promise<string | null> {
     const origin = window.location.origin;
     let settled = false;
     let closeTimer: number | undefined;
+
     const settle = (token: string | null) => {
       if (settled) return;
       settled = true;
-      cleanup();
+      window.removeEventListener("message", onMessage);
+      if (closeTimer) window.clearInterval(closeTimer);
+      try {
+        popup.close();
+      } catch {
+        /* ignore */
+      }
       resolve(token);
     };
+
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== origin) return;
       const data = event.data as PopupMessage | undefined;
       if (!data || data.source !== "grok-auth-popup") return;
       settle(data.token ?? null);
     };
-    // Fallback when the user dismisses the popup. Grace period lets the
-    // completion page's postMessage win over a racing `popup.closed`.
-    const pollTimer = window.setInterval(() => {
-      if (!popup.closed) return;
-      window.clearInterval(pollTimer);
-      closeTimer = window.setTimeout(() => settle(null), 400);
-    }, 300);
-    function cleanup() {
-      window.clearInterval(pollTimer);
-      if (closeTimer !== undefined) window.clearTimeout(closeTimer);
-      window.removeEventListener("message", onMessage);
-    }
+
     window.addEventListener("message", onMessage);
+    closeTimer = window.setInterval(() => {
+      if (popup.closed) settle(null);
+    }, 400);
   });
 }
 
@@ -206,6 +213,11 @@ export async function signOut(redirectTo = "/"): Promise<void> {
     await authClient.signOut();
   } finally {
     setBearerToken(null);
+    try {
+      window.sessionStorage.removeItem(DEMO_MODE_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
   }
   window.location.href = redirectTo;
 }

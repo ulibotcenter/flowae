@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FolderOpen,
   Mail,
+  Send,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -34,6 +35,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Invoice } from "@/lib/billing/types";
+import {
+  InvoiceHistory,
+  refreshInvoiceHistory,
+} from "@/components/InvoiceHistory";
 
 export const Route = createFileRoute("/facturas/$id")({
   component: FacturaDetailPage,
@@ -71,8 +76,12 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
   const updateInvoice = useBillingStore((s) => s.updateInvoice);
   const deleteInvoice = useBillingStore((s) => s.deleteInvoice);
   const refreshEmails = useBillingStore((s) => s.refreshEmails);
+  const sendAdminEmail = useBillingStore((s) => s.sendAdminEmail);
+  const sendClientEmail = useBillingStore((s) => s.sendClientEmail);
 
   const [invoiceNumber, setInvoiceNumber] = useState(invoice.invoiceNumber);
+  const [sendingAdmin, setSendingAdmin] = useState(false);
+  const [sendingClient, setSendingClient] = useState(false);
   const [payment, setPayment] = useState("");
   const [adminSubject, setAdminSubject] = useState("");
   const [adminBody, setAdminBody] = useState("");
@@ -114,78 +123,170 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
   const iva = invoiceIva(invoice);
   const pending = Math.max(0, total - (invoice.paidAmount || 0));
 
-  function onRequestAdmin() {
-    updateInvoice(invoice.id, {
-      adminEmailSubject: adminSubject,
-      adminEmailBody: adminBody,
-    });
-    requestAdmin(invoice.id);
-    const fresh = useBillingStore
-      .getState()
-      .invoices.find((i) => i.id === invoice.id);
-    if (fresh?.adminEmailSubject) {
-      setAdminSubject(fresh.adminEmailSubject);
-      setAdminBody(fresh.adminEmailBody ?? "");
+  async function onRequestAdmin() {
+    try {
+      await updateInvoice(invoice.id, {
+        adminEmailSubject: adminSubject,
+        adminEmailBody: adminBody,
+      });
+      await requestAdmin(invoice.id);
+      const fresh = useBillingStore
+        .getState()
+        .invoices.find((i) => i.id === invoice.id);
+      if (fresh?.adminEmailSubject) {
+        setAdminSubject(fresh.adminEmailSubject);
+        setAdminBody(fresh.adminEmailBody ?? "");
+      }
+      toast.success("Marcada como solicitada a Administración");
+      refreshInvoiceHistory(invoice.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al solicitar");
     }
-    toast.success("Marcada como solicitada a Administración");
   }
 
-  function onMarkIssued() {
+  async function onMarkIssued() {
     if (!invoiceNumber.trim()) {
       toast.error("Introduce el nº de factura de SAGE");
       return;
     }
-    markIssued(invoice.id, invoiceNumber);
-    const fresh = useBillingStore
-      .getState()
-      .invoices.find((i) => i.id === invoice.id);
-    if (fresh) {
-      setClientSubject(fresh.clientEmailSubject ?? "");
-      setClientBody(fresh.clientEmailBody ?? "");
+    try {
+      await markIssued(invoice.id, invoiceNumber);
+      const fresh = useBillingStore
+        .getState()
+        .invoices.find((i) => i.id === invoice.id);
+      if (fresh) {
+        setClientSubject(fresh.clientEmailSubject ?? "");
+        setClientBody(fresh.clientEmailBody ?? "");
+      }
+      toast.success("Factura marcada como emitida (SAGE/LEXNEXT)");
+      refreshInvoiceHistory(invoice.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al emitir");
     }
-    toast.success("Factura marcada como emitida (SAGE/LEXNEXT)");
   }
 
-  function onSendClient() {
-    updateInvoice(invoice.id, {
-      clientEmailSubject: clientSubject,
-      clientEmailBody: clientBody,
-    });
-    markSentToClient(invoice.id);
-    toast.success("Marcada como enviada al cliente");
+  async function onSendClient() {
+    try {
+      await updateInvoice(invoice.id, {
+        clientEmailSubject: clientSubject,
+        clientEmailBody: clientBody,
+      });
+      await markSentToClient(invoice.id);
+      toast.success("Marcada como enviada al cliente");
+      refreshInvoiceHistory(invoice.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al enviar");
+    }
   }
 
-  function onPayment(full?: boolean) {
-    if (full) {
-      registerPayment(invoice.id, 0, true);
-      toast.success("Registrado cobro total");
-      return;
+  async function onPayment(full?: boolean) {
+    try {
+      if (full) {
+        await registerPayment(invoice.id, 0, true);
+        toast.success("Registrado cobro total");
+        refreshInvoiceHistory(invoice.id);
+        return;
+      }
+      const amount = Number(payment.replace(",", "."));
+      if (!amount || amount <= 0) {
+        toast.error("Importe de cobro no válido");
+        return;
+      }
+      await registerPayment(invoice.id, amount);
+      setPayment("");
+      toast.success("Cobro registrado");
+      refreshInvoiceHistory(invoice.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al registrar cobro");
     }
-    const amount = Number(payment.replace(",", "."));
-    if (!amount || amount <= 0) {
-      toast.error("Importe de cobro no válido");
-      return;
-    }
-    registerPayment(invoice.id, amount);
-    setPayment("");
-    toast.success("Cobro registrado");
   }
 
-  function onDelete() {
+  async function onDelete() {
     if (!confirm("¿Eliminar esta factura del panel?")) return;
-    deleteInvoice(invoice.id);
-    toast.success("Eliminada");
-    navigate({ to: "/facturas" });
+    try {
+      await deleteInvoice(invoice.id);
+      toast.success("Eliminada");
+      void navigate({ to: "/facturas" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar");
+    }
   }
 
-  function saveEmailEdits() {
-    updateInvoice(invoice.id, {
-      adminEmailSubject: adminSubject,
-      adminEmailBody: adminBody,
-      clientEmailSubject: clientSubject,
-      clientEmailBody: clientBody,
-    });
-    toast.success("Plantillas guardadas");
+  async function saveEmailEdits() {
+    try {
+      await updateInvoice(invoice.id, {
+        adminEmailSubject: adminSubject,
+        adminEmailBody: adminBody,
+        clientEmailSubject: clientSubject,
+        clientEmailBody: clientBody,
+      });
+      toast.success("Textos de email guardados");
+      refreshInvoiceHistory(invoice.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al guardar");
+    }
+  }
+
+  async function onSendAdminEmail() {
+    setSendingAdmin(true);
+    try {
+      const result = await sendAdminEmail(invoice.id, {
+        subject: adminSubject,
+        body: adminBody,
+      });
+      setAdminSubject(result.subject);
+      setAdminBody(result.invoice.adminEmailBody ?? adminBody);
+      if (result.mode === "simulated") {
+        try {
+          await navigator.clipboard.writeText(
+            `Para: ${result.to}\nAsunto: ${result.subject}\n\n${adminBody}`,
+          );
+        } catch {
+          /* ignore clipboard */
+        }
+        toast.message("Modo prueba (sin RESEND_API_KEY)", {
+          description: result.message + " Contenido copiado al portapapeles.",
+        });
+      } else {
+        toast.success(result.message);
+      }
+      refreshInvoiceHistory(invoice.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al enviar");
+    } finally {
+      setSendingAdmin(false);
+    }
+  }
+
+  async function onSendClientEmail() {
+    setSendingClient(true);
+    try {
+      const result = await sendClientEmail(invoice.id, {
+        subject: clientSubject,
+        body: clientBody,
+      });
+      setClientSubject(result.subject);
+      setClientBody(result.invoice.clientEmailBody ?? clientBody);
+      if (result.mode === "simulated") {
+        try {
+          await navigator.clipboard.writeText(
+            `Para: ${result.to}\nAsunto: ${result.subject}\n\n${clientBody}`,
+          );
+        } catch {
+          /* ignore */
+        }
+        toast.message("Modo prueba (sin RESEND_API_KEY)", {
+          description: result.message + " Contenido copiado al portapapeles.",
+        });
+      } else {
+        toast.success(result.message);
+      }
+      refreshInvoiceHistory(invoice.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al enviar");
+    } finally {
+      setSendingClient(false);
+    }
   }
 
   const adminMailto = mailtoHref(settings.adminEmail, adminSubject, adminBody);
@@ -266,10 +367,22 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
               <Select
                 value={invoice.remitente}
                 onChange={(e) => {
-                  updateInvoice(invoice.id, {
-                    remitente: e.target.value as "abogado" | "administracion",
-                  });
-                  refreshEmails(invoice.id);
+                  void (async () => {
+                    try {
+                      await updateInvoice(invoice.id, {
+                        remitente: e.target.value as
+                          | "abogado"
+                          | "administracion",
+                      });
+                      await refreshEmails(invoice.id);
+                    } catch (err) {
+                      toast.error(
+                        err instanceof Error
+                          ? err.message
+                          : "Error al actualizar",
+                      );
+                    }
+                  })();
                 }}
               >
                 <option value="abogado">Abogado</option>
@@ -282,7 +395,7 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
               variant="outline"
               size="sm"
               className="w-full text-danger"
-              onClick={onDelete}
+              onClick={() => void onDelete()}
             >
               <Trash2 className="size-3.5" />
               Eliminar del panel
@@ -320,7 +433,21 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
                   onChange={(e) => setAdminBody(e.target.value)}
                 />
               </div>
+              {invoice.adminEmailSentAt && (
+                <p className="text-xs text-muted">
+                  Último envío a Admin: {formatDateEs(invoice.adminEmailSentAt)}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={sendingAdmin}
+                  onClick={() => void onSendAdminEmail()}
+                >
+                  <Send className="size-3.5" />
+                  {sendingAdmin ? "Enviando…" : "Enviar a Administración"}
+                </Button>
                 <CopyButton
                   text={`${adminSubject}\n\n${adminBody}`}
                   label="Copiar email"
@@ -333,15 +460,20 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
                   </a>
                 </Button>
                 {invoice.status === "borrador" && (
-                  <Button type="button" size="sm" onClick={onRequestAdmin}>
-                    Marcar solicitada a Admin
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void onRequestAdmin()}
+                  >
+                    Solo marcar solicitada
                   </Button>
                 )}
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={saveEmailEdits}
+                  onClick={() => void saveEmailEdits()}
                 >
                   Guardar cambios
                 </Button>
@@ -404,7 +536,7 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
                       value={invoiceNumber}
                       onChange={(e) => setInvoiceNumber(e.target.value)}
                     />
-                    <Button type="button" onClick={onMarkIssued}>
+                    <Button type="button" onClick={() => void onMarkIssued()}>
                       <CheckCircle2 className="size-4" />
                       Marcar emitida
                     </Button>
@@ -456,7 +588,22 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
                   onChange={(e) => setClientBody(e.target.value)}
                 />
               </div>
+              {invoice.clientEmailSentAt && (
+                <p className="text-xs text-muted">
+                  Último envío al cliente:{" "}
+                  {formatDateEs(invoice.clientEmailSentAt)}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={sendingClient || !invoice.clientEmail}
+                  onClick={() => void onSendClientEmail()}
+                >
+                  <Send className="size-3.5" />
+                  {sendingClient ? "Enviando…" : "Enviar al Cliente"}
+                </Button>
                 <CopyButton
                   text={`${clientSubject}\n\n${clientBody}`}
                   label="Copiar email"
@@ -473,15 +620,20 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
                   </a>
                 </Button>
                 {["emitida", "enviada_cliente"].includes(invoice.status) && (
-                  <Button type="button" size="sm" onClick={onSendClient}>
-                    Marcar enviada al cliente
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void onSendClient()}
+                  >
+                    Solo marcar enviada
                   </Button>
                 )}
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={saveEmailEdits}
+                  onClick={() => void saveEmailEdits()}
                 >
                   Guardar cambios
                 </Button>
@@ -525,11 +677,11 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() => onPayment()}
+                      onClick={() => void onPayment()}
                     >
                       Registrar cobro
                     </Button>
-                    <Button type="button" onClick={() => onPayment(true)}>
+                    <Button type="button" onClick={() => void onPayment(true)}>
                       Marcar pagada
                     </Button>
                   </div>
@@ -542,6 +694,8 @@ function FacturaDetail({ invoice }: { invoice: Invoice }) {
               )}
             </CardContent>
           </Card>
+
+          <InvoiceHistory invoiceId={invoice.id} />
         </div>
       </div>
     </div>

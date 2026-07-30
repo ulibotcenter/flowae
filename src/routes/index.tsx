@@ -21,6 +21,7 @@ import { useMemo } from "react";
 import { useBillingStore } from "@/lib/billing/store";
 import { invoiceTotal } from "@/lib/billing/templates";
 import { formatCurrency, formatDateEs } from "@/lib/billing/format";
+import { isHoyItem, sortByUrgency } from "@/lib/billing/priority";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,17 +44,7 @@ function DashboardPage() {
   const stats = useMemo(() => computeStats(invoices), [invoices]);
 
   const actionItems = useMemo(() => {
-    return invoices
-      .filter((i) =>
-        [
-          "borrador",
-          "solicitada_admin",
-          "emitida",
-          "vencida",
-          "parcial",
-        ].includes(i.status),
-      )
-      .slice(0, 6);
+    return invoices.filter(isHoyItem).sort(sortByUrgency).slice(0, 6);
   }, [invoices]);
 
   const byLawyer = useMemo(() => {
@@ -80,12 +71,20 @@ function DashboardPage() {
             Visión del flujo y cobros — pensado para más de 250 facturas/año
           </p>
         </div>
-        <Button asChild className="shrink-0">
-          <Link to="/nueva">
-            Nueva facturación
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" className="shrink-0">
+            <Link to="/hoy">
+              Pendientes de hoy
+              {actionItems.length > 0 ? ` (${stats.hoyCount})` : ""}
+            </Link>
+          </Button>
+          <Button asChild className="shrink-0">
+            <Link to="/nueva">
+              Nueva facturación
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -104,9 +103,9 @@ function DashboardPage() {
         />
         <StatCard
           icon={Clock}
-          label="En proceso"
-          value={String(stats.inProcess)}
-          hint="Borrador → enviada"
+          label="Pendientes de acción"
+          value={String(stats.hoyCount)}
+          hint="Vista Hoy"
         />
         <StatCard
           icon={Wallet}
@@ -166,7 +165,7 @@ function DashboardPage() {
           <CardHeader>
             <CardTitle>Acciones prioritarias</CardTitle>
             <CardDescription>
-              Pasos del flujo que requieren intervención
+              Lo más urgente de la vista Hoy
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
@@ -195,7 +194,7 @@ function DashboardPage() {
               </Link>
             ))}
             <Button asChild variant="outline" className="mt-1">
-              <Link to="/facturas">Ver todo el seguimiento</Link>
+              <Link to="/hoy">Ver todas las de hoy</Link>
             </Button>
           </CardContent>
         </Card>
@@ -324,33 +323,23 @@ function computeStats(invoices: Invoice[]) {
   let overdue = 0;
   let overdueCount = 0;
   let collected = 0;
-  let inProcess = 0;
+  let hoyCount = 0;
 
   for (const inv of invoices) {
     const total = invoiceTotal(inv);
     const rest = Math.max(0, total - (inv.paidAmount || 0));
+    if (isHoyItem(inv)) hoyCount++;
     if (inv.status === "pagada") {
       collected += inv.paidAmount || total;
       continue;
     }
-    if (inv.status === "borrador") {
-      inProcess++;
-      continue;
-    }
-    if (rest > 0) {
+    if (rest > 0 && inv.status !== "borrador") {
       pending += rest;
       pendingCount++;
     }
     if (inv.status === "vencida") {
       overdue += rest;
       overdueCount++;
-    }
-    if (
-      ["solicitada_admin", "emitida", "enviada_cliente", "parcial"].includes(
-        inv.status,
-      )
-    ) {
-      inProcess++;
     }
   }
 
@@ -360,6 +349,6 @@ function computeStats(invoices: Invoice[]) {
     overdue,
     overdueCount,
     collected,
-    inProcess,
+    hoyCount,
   };
 }

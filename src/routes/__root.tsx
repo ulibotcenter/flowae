@@ -3,10 +3,12 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useRouterState,
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
 import { AppShell } from "@/components/layout/AppShell";
+import { BillingBootstrap } from "@/components/BillingBootstrap";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -36,13 +38,25 @@ function RootComponent() {
       </head>
       <body>
         <AuthProvider>
-          <AppShell>
-            <Outlet />
-          </AppShell>
+          <RootLayout />
           <Toaster richColors position="top-right" closeButton />
         </AuthProvider>
         <Scripts />
       </body>
     </html>
+  );
+}
+
+function RootLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname === "/login") {
+    return <Outlet />;
+  }
+  return (
+    <AppShell>
+      <BillingBootstrap>
+        <Outlet />
+      </BillingBootstrap>
+    </AppShell>
   );
 }

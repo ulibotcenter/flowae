@@ -1,11 +1,23 @@
-import "../_runtime.mjs";
+import { r as __exportAll } from "../_runtime.mjs";
+import { t as __exportAll$1 } from "./rolldown-runtime-D7D4PA-g.mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
-import { i as require_jsx_runtime } from "../_libs/@radix-ui/react-label+[...].mjs";
-import { A as isNotFound, C as getStylesheetHref, D as isRedirect, E as executeRewriteInput, M as invariant, O as isResolvedRedirect, S as getScriptPreloadAttrs, T as resolveManifestCssLink, a as replaceSsrResponse, i as normalizeSsrResponse, k as rootRouteId, n as defineHandlerCallback, o as stripSsrResponseBody, r as isSsrResponse, t as renderRouterToStream, u as RouterProvider, w as resolveManifestAssetLink } from "../_libs/@tanstack/react-router+[...].mjs";
+import { A as parseRedirect, C as getScriptPreloadAttrs, D as executeRewriteInput, E as resolveManifestCssLink, M as isNotFound, O as isRedirect, P as invariant, T as resolveManifestAssetLink, a as replaceSsrResponse, i as normalizeSsrResponse, j as rootRouteId, k as isResolvedRedirect, n as defineHandlerCallback, o as stripSsrResponseBody, r as isSsrResponse, t as renderRouterToStream, u as RouterProvider, w as getStylesheetHref } from "../_libs/@tanstack/react-router+[...].mjs";
 import { n as createMemoryHistory } from "../_libs/tanstack__history.mjs";
 import { a as defaultSerovalPlugins, c as makeSerovalPlugin, d as lu, i as getOrigin, l as Ou, n as attachRouterServerSsrUtils, o as createRawStreamRPCPlugin, r as getNormalizedURL, s as createSerializationAdapter, t as mergeHeaders, u as cu } from "../_libs/@tanstack/router-core+[...].mjs";
-import { n as toResponse, t as H3Event } from "../_libs/h3-v2+rou3.mjs";
+import { i as require_jsx_runtime } from "../_libs/@radix-ui/react-label+[...].mjs";
+import { n as setCookie, r as toResponse, t as H3Event } from "../_libs/h3-v2+rou3.mjs";
 import { AsyncLocalStorage } from "node:async_hooks";
+//#region node_modules/.nitro/vite/services/ssr/index.js
+var ssr_exports = /* @__PURE__ */ __exportAll({
+	a: () => getServerFnById,
+	createServerEntry: () => createServerEntry,
+	default: () => server_default,
+	i: () => TSS_SERVER_FUNCTION,
+	n: () => createMiddleware,
+	o: () => getRequest,
+	r: () => createServerFn,
+	t: () => server_exports
+});
 require_react();
 var import_jsx_runtime = require_jsx_runtime();
 function StartServer(props) {
@@ -67,6 +79,21 @@ function getH3Event() {
 	if (!event) throw new Error(`No StartEvent found in AsyncLocalStorage. Make sure you are using the function within the server runtime.`);
 	return event.h3Event;
 }
+function getRequest() {
+	return getH3Event().req;
+}
+/**
+* Set a cookie value by name.
+* @param name Name of the cookie to set
+* @param value Value of the cookie to set
+* @param options {CookieSerializeOptions} Options for serializing the cookie
+* ```ts
+* setCookie('Authorization', '1234567')
+* ```
+*/
+function setCookie$1(name, value, options) {
+	setCookie(getH3Event(), name, value, options);
+}
 function getResponse() {
 	return getH3Event().res;
 }
@@ -81,7 +108,7 @@ var HEADERS = { TSS_SHELL: "X-TSS_SHELL" };
 * the dev styles URL for route-scoped CSS collection.
 */
 async function getStartManifest(matchedRoutes) {
-	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-C3L9uFa9.mjs");
+	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-CjO96uDN.mjs");
 	const startManifest = tsrStartManifest();
 	let routes = startManifest.routes;
 	routes[rootRouteId];
@@ -100,7 +127,128 @@ async function getStartManifest(matchedRoutes) {
 		routes: manifestRoutes
 	};
 }
-var manifest = {};
+var manifest = {
+	"045f821e5b99c550175d68fe51c7a9363aea8294a0758e91386c0702f302fa26": {
+		functionName: "markSentToClientFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"1901044f46103e7c9c66ed45f6efef1a8343efd22a8dec8c4ecf2f29df37628d": {
+		functionName: "getBillingBootstrap_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"2203c1e7fc584049b307518911ef2075a0fbade5e6835a0f0be69fb86a2db1ab": {
+		functionName: "sendClientEmailFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"22043478ae92c45a834ddbd031382a522dc49b13d8a37c67cda87c949abd8e86": {
+		functionName: "getHarveyStatusFn_createServerFn_handler",
+		importer: () => import("./server-fn-CZJk1g1E.mjs")
+	},
+	"2bb98d0ad991ee3075001c853c59c9fae60cfbf3c593cd38bf4112dc506f7e27": {
+		functionName: "batchMarkSentFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"2f0a2b37fd14bc3df2a56736c3f5e0e40d28a53c1156f9013d64a4a3cf18de30": {
+		functionName: "batchRequestAdminFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"30a1c7af74e7f3cc1da1659eeff548ff88d806ac33f59c5903a85e98ff84bf79": {
+		functionName: "saveHarveyApiKeyFn_createServerFn_handler",
+		importer: () => import("./server-fn-CZJk1g1E.mjs")
+	},
+	"366a9ac964eea89f9d3e784268679178077d477e8b4fd60ccfb1964a4530c2e0": {
+		functionName: "listInvoiceEventsFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"3e1cf16108e3dffe204e0cf9716bff62e5749e4dc5a71431510497255798cf5f": {
+		functionName: "removeLawyerFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"43c1cc3091633ce4e561e2523d92dbf06f3e8416392527d03b1b3afb3b565fb9": {
+		functionName: "createInvoiceFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"479c42948f57cb2ce1ac723ca91458345466fdd5219fdfc09fda0fe14c1c2b0e": {
+		functionName: "refreshEmailsFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"4bc80a57a7ad656a62df07d610687b26406118b05928106591377c1b8515b757": {
+		functionName: "listProfilesFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"561a5f79b607985070e782c7591116d014da2c95a45e1ced7e4ec0b61db2f265": {
+		functionName: "getExtractStatusFn_createServerFn_handler",
+		importer: () => import("./server-fn-CZJk1g1E.mjs")
+	},
+	"5975558be30efc7ad28339731a0032e6957c5e0d8e451788acea035656db3534": {
+		functionName: "requestAdminFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"68475eddc80014473b1a0a55ae4ff6f82c90d052b485d9a05bdb8bc097d980bb": {
+		functionName: "deleteHarveyApiKeyFn_createServerFn_handler",
+		importer: () => import("./server-fn-CZJk1g1E.mjs")
+	},
+	"6918c9235add1bfc2501b1779e5d55d0ca8d84c40740c91788be9817466891b2": {
+		functionName: "deleteInvoiceFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"6c766d6858f694877752a98bb94bf92583021cccaec280feb70be19f5ebd5d38": {
+		functionName: "sendAdminEmailFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"757887c467808cff0d07f34da25ed1971dd9b5614bea2633b0544c87dd3b9de5": {
+		functionName: "resetDemoFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"7a1e9d0adc8849ee47f13a51f287f2773739987a8d387eee99c64d3664d8fa13": {
+		functionName: "ensureDemoUserFn_createServerFn_handler",
+		importer: () => import("./demo-server-fn-BEDonZ7A.mjs")
+	},
+	"7a5d571236a03ad2041445377eee2c7de7d7501018a4fa4a9ec71637deef7e2e": {
+		functionName: "markIssuedFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"7b14fb701cb11863714aa3e3f75353cc1bdc341529aea63d4d10f7d877f4c69b": {
+		functionName: "batchRefreshOverdueFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"a24ffb7cd0bb28ccc09b004b21ae4484121af9921a847f031c569ae14d36d4ba": {
+		functionName: "upsertLawyerFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"bcd2db5234a6e52499312e968143e5eef093597672bca99e8cfc8c2cccddccd2": {
+		functionName: "testHarveyConnectionFn_createServerFn_handler",
+		importer: () => import("./server-fn-CZJk1g1E.mjs")
+	},
+	"bd2a52cdf49b6c672a4e0d852e88a7a5d7c5bdd9fe06e1ea4d0511fc14dff362": {
+		functionName: "getMailStatusFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"c2fbfade57d44a4c9849c6ab76b1433f36e3b77840bb7d462c30e6e727fe87aa": {
+		functionName: "registerPaymentFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"c8ac20e3e297af7541e54e989055e573988e8b7ed3ffa71b9d9785ea1cb8b353": {
+		functionName: "updateInvoiceFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"cc9668f5a7d7ef75678ee71652375e48684a57a69dce9db85a8d33d614657c3d": {
+		functionName: "setUserRoleFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"e7f8d4b892b7deb62794395f842240cdb761b68f35b9f05365ec6843bb474f55": {
+		functionName: "updateHarveyBaseUrlFn_createServerFn_handler",
+		importer: () => import("./server-fn-CZJk1g1E.mjs")
+	},
+	"eb4e204be12d2eeafe54f6ade6459dd9c7b03e5bb51c181599b85aa4982e9728": {
+		functionName: "saveSettingsFn_createServerFn_handler",
+		importer: () => import("./server-fns-WC5L5ofj.mjs")
+	},
+	"ed784e5864a007de5c9ab19434a9517ddb7fbb653a4310eee5c4cf1f6a1d478c": {
+		functionName: "extractConceptFn_createServerFn_handler",
+		importer: () => import("./server-fn-CZJk1g1E.mjs")
+	}
+};
 async function getServerFnById(id, access) {
 	const serverFnInfo = manifest[id];
 	if (!serverFnInfo) throw new Error("Server function info not found for " + id);
@@ -112,6 +260,7 @@ async function getServerFnById(id, access) {
 }
 var TSS_FORMDATA_CONTEXT = "__TSS_CONTEXT";
 var TSS_SERVER_FUNCTION = Symbol.for("TSS_SERVER_FUNCTION");
+var TSS_SERVER_FUNCTION_FACTORY = Symbol.for("TSS_SERVER_FUNCTION_FACTORY");
 var X_TSS_SERIALIZED = "x-tss-serialized";
 var X_TSS_RAW_RESPONSE = "x-tss-raw";
 /** Content-Type for multiplexed framed responses (RawStream support) */
@@ -169,6 +318,151 @@ function getStartContext(opts) {
 	return context;
 }
 var getStartOptions = () => getStartContext().startOptions;
+var getStartContextServerOnly = getStartContext;
+var createServerFn = (options, __opts) => {
+	const resolvedOptions = __opts || options || {};
+	if (typeof resolvedOptions.method === "undefined") resolvedOptions.method = "GET";
+	const setValidator = (validator) => {
+		return createServerFn(void 0, {
+			...resolvedOptions,
+			validator,
+			inputValidator: validator
+		});
+	};
+	const res = {
+		options: resolvedOptions,
+		middleware: (middleware) => {
+			const newMiddleware = [...resolvedOptions.middleware || []];
+			middleware.map((m) => {
+				if (TSS_SERVER_FUNCTION_FACTORY in m) {
+					if (m.options.middleware) newMiddleware.push(...m.options.middleware);
+				} else newMiddleware.push(m);
+			});
+			const res = createServerFn(void 0, {
+				...resolvedOptions,
+				middleware: newMiddleware
+			});
+			res[TSS_SERVER_FUNCTION_FACTORY] = true;
+			return res;
+		},
+		validator: setValidator,
+		inputValidator: setValidator,
+		handler: (...args) => {
+			const [extractedFn, serverFn] = args;
+			const newOptions = {
+				...resolvedOptions,
+				extractedFn,
+				serverFn
+			};
+			const resolvedMiddleware = [...newOptions.middleware || [], serverFnBaseToMiddleware(newOptions)];
+			extractedFn.method = resolvedOptions.method;
+			return Object.assign(async (opts) => {
+				const result = await executeMiddleware$1(resolvedMiddleware, "client", {
+					...extractedFn,
+					...newOptions,
+					data: opts?.data,
+					headers: opts?.headers,
+					signal: opts?.signal,
+					fetch: opts?.fetch,
+					context: createNullProtoObject()
+				});
+				const redirect = parseRedirect(result.error);
+				if (redirect) throw redirect;
+				if (result.error) throw result.error;
+				return result.result;
+			}, {
+				...extractedFn,
+				method: resolvedOptions.method,
+				__executeServer: async (opts) => {
+					const startContext = getStartContextServerOnly();
+					const serverContextAfterGlobalMiddlewares = startContext.contextAfterGlobalMiddlewares;
+					return await executeMiddleware$1(resolvedMiddleware, "server", {
+						...extractedFn,
+						...opts,
+						serverFnMeta: extractedFn.serverFnMeta,
+						context: safeObjectMerge(opts.context, serverContextAfterGlobalMiddlewares),
+						request: startContext.request
+					}).then((d) => ({
+						result: d.result,
+						error: d.error,
+						context: d.sendContext
+					}));
+				}
+			});
+		}
+	};
+	const fun = (options) => {
+		return createServerFn(void 0, {
+			...resolvedOptions,
+			...options
+		});
+	};
+	return Object.assign(fun, res);
+};
+async function executeMiddleware$1(middlewares, env, opts) {
+	let flattenedMiddlewares = flattenMiddlewares([...getStartOptions()?.functionMiddleware || [], ...middlewares]);
+	if (env === "server") {
+		const startContext = getStartContextServerOnly({ throwIfNotFound: false });
+		if (startContext?.executedRequestMiddlewares) flattenedMiddlewares = flattenedMiddlewares.filter((m) => !startContext.executedRequestMiddlewares.has(m));
+	}
+	const callNextMiddleware = async (ctx) => {
+		const nextMiddleware = flattenedMiddlewares.shift();
+		if (!nextMiddleware) return ctx;
+		try {
+			let validator = "validator" in nextMiddleware.options ? nextMiddleware.options.validator : void 0;
+			if (!validator && "inputValidator" in nextMiddleware.options) validator = nextMiddleware.options.inputValidator;
+			if (validator && env === "server") ctx.data = await execValidator(validator, ctx.data);
+			let middlewareFn = void 0;
+			if (env === "client") {
+				if ("client" in nextMiddleware.options) middlewareFn = nextMiddleware.options.client;
+			} else if ("server" in nextMiddleware.options) middlewareFn = nextMiddleware.options.server;
+			if (middlewareFn) {
+				const userNext = async (userCtx = {}) => {
+					const result = await callNextMiddleware({
+						...ctx,
+						...userCtx,
+						context: safeObjectMerge(ctx.context, userCtx.context),
+						sendContext: safeObjectMerge(ctx.sendContext, userCtx.sendContext),
+						headers: mergeHeaders(ctx.headers, userCtx.headers),
+						_callSiteFetch: ctx._callSiteFetch,
+						fetch: ctx._callSiteFetch ?? userCtx.fetch ?? ctx.fetch,
+						result: userCtx.result !== void 0 ? userCtx.result : userCtx instanceof Response ? userCtx : ctx.result,
+						error: userCtx.error ?? ctx.error
+					});
+					if (result.error) throw result.error;
+					return result;
+				};
+				const result = await middlewareFn({
+					...ctx,
+					next: userNext
+				});
+				if (isRedirect(result)) return {
+					...ctx,
+					error: result
+				};
+				if (result instanceof Response) return {
+					...ctx,
+					result
+				};
+				if (!result) throw new Error("User middleware returned undefined. You must call next() or return a result in your middlewares.");
+				return result;
+			}
+			return callNextMiddleware(ctx);
+		} catch (error) {
+			return {
+				...ctx,
+				error
+			};
+		}
+	};
+	return callNextMiddleware({
+		...opts,
+		headers: opts.headers || {},
+		sendContext: opts.sendContext || {},
+		context: opts.context || createNullProtoObject(),
+		_callSiteFetch: opts.fetch
+	});
+}
 function flattenMiddlewares(middlewares, maxDepth = 100) {
 	const seen = /* @__PURE__ */ new Set();
 	const flattened = [];
@@ -184,6 +478,40 @@ function flattenMiddlewares(middlewares, maxDepth = 100) {
 	};
 	recurse(middlewares, 0);
 	return flattened;
+}
+async function execValidator(validator, input) {
+	if (validator == null) return {};
+	if ("~standard" in validator) {
+		const result = await validator["~standard"].validate(input);
+		if (result.issues) throw new Error(JSON.stringify(result.issues, void 0, 2));
+		return result.value;
+	}
+	if ("parse" in validator) return validator.parse(input);
+	if (typeof validator === "function") return validator(input);
+	throw new Error("Invalid validator type!");
+}
+function serverFnBaseToMiddleware(options) {
+	return {
+		"~types": void 0,
+		options: {
+			inputValidator: options.validator ?? options.inputValidator,
+			client: async ({ next, sendContext, fetch, ...ctx }) => {
+				const payload = {
+					...ctx,
+					context: sendContext,
+					fetch
+				};
+				return next(await options.extractedFn?.(payload));
+			},
+			server: async ({ next, ...ctx }) => {
+				const result = await options.serverFn?.(ctx);
+				return next({
+					...ctx,
+					result
+				});
+			}
+		}
+	};
 }
 var createMiddleware = (options, __opts) => {
 	const resolvedOptions = {
@@ -1188,7 +1516,7 @@ var getBaseManifest = getProdBaseManifest;
 var createEarlyHintsForRequest = createEarlyHintsCollector;
 async function loadEntries() {
 	const [routerEntry, startEntry, pluginAdapters] = await Promise.all([
-		import("./router-CcNuL44n.mjs"),
+		import("./router-Rf5lnFrW.mjs"),
 		import("./start-5Z2QO8AU.mjs"),
 		import("./empty-plugin-adapters-D9UWiqvJ.mjs")
 	]);
@@ -1565,6 +1893,7 @@ async function handleServerRoutes({ getRouter, request, url, executeRouter, cont
 	}
 	return normalizeSsrResponse(response);
 }
+var server_exports = /* @__PURE__ */ __exportAll$1({ setCookie: () => setCookie$1 });
 var fetch = createStartHandler(defaultStreamHandler);
 function createServerEntry(entry) {
 	return { async fetch(...args) {
@@ -1573,4 +1902,4 @@ function createServerEntry(entry) {
 }
 var server_default = createServerEntry({ fetch });
 //#endregion
-export { createServerEntry, server_default as default };
+export { getServerFnById as a, getRequest as i, createMiddleware as n, ssr_exports as o, createServerFn as r, TSS_SERVER_FUNCTION as t };

@@ -12,9 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConfiguracionRouteImport } from './routes/configuracion'
 import { Route as FacturasRouteImport } from './routes/facturas'
+import { Route as HoyRouteImport } from './routes/hoy'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as NuevaRouteImport } from './routes/nueva'
 import { Route as FacturasIndexRouteImport } from './routes/facturas.index'
 import { Route as FacturasIdRouteImport } from './routes/facturas.$id'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,6 +32,16 @@ const ConfiguracionRoute = ConfiguracionRouteImport.update({
 const FacturasRoute = FacturasRouteImport.update({
   id: '/facturas',
   path: '/facturas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HoyRoute = HoyRouteImport.update({
+  id: '/hoy',
+  path: '/hoy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NuevaRoute = NuevaRouteImport.update({
@@ -46,30 +59,44 @@ const FacturasIdRoute = FacturasIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => FacturasRoute,
 } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/configuracion': typeof ConfiguracionRoute
   '/facturas': typeof FacturasRouteWithChildren
+  '/hoy': typeof HoyRoute
+  '/login': typeof LoginRoute
   '/nueva': typeof NuevaRoute
   '/facturas/$id': typeof FacturasIdRoute
   '/facturas/': typeof FacturasIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/hoy': typeof HoyRoute
+  '/login': typeof LoginRoute
   '/nueva': typeof NuevaRoute
   '/facturas/$id': typeof FacturasIdRoute
   '/facturas': typeof FacturasIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/configuracion': typeof ConfiguracionRoute
   '/facturas': typeof FacturasRouteWithChildren
+  '/hoy': typeof HoyRoute
+  '/login': typeof LoginRoute
   '/nueva': typeof NuevaRoute
   '/facturas/$id': typeof FacturasIdRoute
   '/facturas/': typeof FacturasIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -77,26 +104,43 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracion'
     | '/facturas'
+    | '/hoy'
+    | '/login'
     | '/nueva'
     | '/facturas/$id'
     | '/facturas/'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/configuracion' | '/nueva' | '/facturas/$id' | '/facturas'
+  to:
+    | '/'
+    | '/configuracion'
+    | '/hoy'
+    | '/login'
+    | '/nueva'
+    | '/facturas/$id'
+    | '/facturas'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/configuracion'
     | '/facturas'
+    | '/hoy'
+    | '/login'
     | '/nueva'
     | '/facturas/$id'
     | '/facturas/'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfiguracionRoute: typeof ConfiguracionRoute
   FacturasRoute: typeof FacturasRouteWithChildren
+  HoyRoute: typeof HoyRoute
+  LoginRoute: typeof LoginRoute
   NuevaRoute: typeof NuevaRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -122,6 +166,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FacturasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hoy': {
+      id: '/hoy'
+      path: '/hoy'
+      fullPath: '/hoy'
+      preLoaderRoute: typeof HoyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/nueva': {
       id: '/nueva'
       path: '/nueva'
@@ -142,6 +200,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/facturas/$id'
       preLoaderRoute: typeof FacturasIdRouteImport
       parentRoute: typeof FacturasRoute
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -164,7 +229,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfiguracionRoute: ConfiguracionRoute,
   FacturasRoute: FacturasRouteWithChildren,
+  HoyRoute: HoyRoute,
+  LoginRoute: LoginRoute,
   NuevaRoute: NuevaRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,320 +1,235 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { DEFAULT_LAWYERS, DEFAULT_SETTINGS } from "./seed";
 import type {
+  BillingBootstrap,
   BillingConceptDraft,
   FirmSettings,
   Invoice,
   InvoiceStatus,
   Lawyer,
+  UserProfile,
+  EmailSendResult,
 } from "./types";
 import {
-  buildAdminEmail,
-  buildClientEmail,
-  buildSharePointPath,
-  invoiceTotal,
-} from "./templates";
-import { addDaysIso, todayIso } from "./format";
-import { createSeedInvoices, DEFAULT_LAWYERS, DEFAULT_SETTINGS } from "./seed";
+  batchMarkSentFn,
+  batchRefreshOverdueFn,
+  batchRequestAdminFn,
+  createInvoiceFn,
+  deleteInvoiceFn,
+  getBillingBootstrap,
+  markIssuedFn,
+  markSentToClientFn,
+  registerPaymentFn,
+  removeLawyerFn,
+  requestAdminFn,
+  resetDemoFn,
+  saveSettingsFn,
+  updateInvoiceFn,
+  upsertLawyerFn,
+  refreshEmailsFn,
+  sendAdminEmailFn,
+  sendClientEmailFn,
+} from "./server-fns";
+
+function replaceInvoice(list: Invoice[], inv: Invoice): Invoice[] {
+  return list.map((i) => (i.id === inv.id ? inv : i));
+}
 
 interface BillingState {
   settings: FirmSettings;
   lawyers: Lawyer[];
   invoices: Invoice[];
+  profile: UserProfile | null;
   seq: number;
   hydrated: boolean;
+  loading: boolean;
+  error: string | null;
   setHydrated: (v: boolean) => void;
-  updateSettings: (patch: Partial<FirmSettings>) => void;
-  upsertLawyer: (lawyer: Lawyer) => void;
-  removeLawyer: (id: string) => void;
-  createFromDraft: (draft: BillingConceptDraft) => Invoice;
-  updateInvoice: (id: string, patch: Partial<Invoice>) => void;
-  deleteInvoice: (id: string) => void;
-  advanceStatus: (id: string, status: InvoiceStatus, extra?: Partial<Invoice>) => void;
-  requestAdmin: (id: string) => void;
-  markIssued: (id: string, invoiceNumber: string) => void;
-  markSentToClient: (id: string) => void;
-  registerPayment: (id: string, amount: number, full?: boolean) => void;
-  refreshEmails: (id: string) => void;
-  refreshOverdue: () => void;
-  resetDemo: () => void;
+  bootstrap: () => Promise<void>;
+  applyBootstrap: (data: BillingBootstrap) => void;
+  updateSettings: (patch: Partial<FirmSettings>) => Promise<void>;
+  upsertLawyer: (lawyer: Lawyer) => Promise<void>;
+  removeLawyer: (id: string) => Promise<void>;
+  createFromDraft: (draft: BillingConceptDraft) => Promise<Invoice>;
+  updateInvoice: (id: string, patch: Partial<Invoice>) => Promise<void>;
+  deleteInvoice: (id: string) => Promise<void>;
+  advanceStatus: (
+    id: string,
+    status: InvoiceStatus,
+    extra?: Partial<Invoice>,
+  ) => Promise<void>;
+  requestAdmin: (id: string) => Promise<void>;
+  markIssued: (id: string, invoiceNumber: string) => Promise<void>;
+  markSentToClient: (id: string) => Promise<void>;
+  registerPayment: (
+    id: string,
+    amount: number,
+    full?: boolean,
+  ) => Promise<void>;
+  refreshEmails: (id: string) => Promise<void>;
+  refreshOverdue: () => Promise<void>;
+  batchRequestAdmin: (ids: string[]) => Promise<number>;
+  batchMarkSentToClient: (ids: string[]) => Promise<number>;
+  batchRefreshOverdue: (ids?: string[]) => Promise<number>;
+  resetDemo: () => Promise<void>;
+  sendAdminEmail: (
+    id: string,
+    overrides?: { subject?: string; body?: string },
+  ) => Promise<EmailSendResult>;
+  sendClientEmail: (
+    id: string,
+    overrides?: { subject?: string; body?: string },
+  ) => Promise<EmailSendResult>;
   getLawyer: (id: string) => Lawyer | undefined;
 }
 
-function nextRef(seq: number): string {
-  const year = new Date().getFullYear();
-  return `FAC-${year}-${String(seq).padStart(4, "0")}`;
-}
+export const useBillingStore = create<BillingState>((set, get) => ({
+  settings: DEFAULT_SETTINGS,
+  lawyers: DEFAULT_LAWYERS,
+  invoices: [],
+  profile: null,
+  seq: 0,
+  hydrated: false,
+  loading: false,
+  error: null,
 
-function recomputeDueStatus(inv: Invoice): Invoice {
-  if (
-    inv.status === "pagada" ||
-    inv.status === "borrador" ||
-    inv.status === "solicitada_admin" ||
-    inv.status === "vencida"
-  ) {
-    return inv;
-  }
-  if (
-    inv.dueDate &&
-    new Date(inv.dueDate) < new Date() &&
-    inv.paidAmount < invoiceTotal(inv) &&
-    (inv.status === "enviada_cliente" ||
-      inv.status === "emitida" ||
-      inv.status === "parcial")
-  ) {
-    if (inv.paidAmount === 0) {
-      return { ...inv, status: "vencida" };
-    }
-  }
-  return inv;
-}
+  setHydrated: (v) => set({ hydrated: v }),
 
-export const useBillingStore = create<BillingState>()(
-  persist(
-    (set, get) => ({
-      settings: DEFAULT_SETTINGS,
-      lawyers: DEFAULT_LAWYERS,
-      invoices: createSeedInvoices(DEFAULT_SETTINGS),
-      seq: 42,
-      hydrated: false,
-
-      setHydrated: (v) => set({ hydrated: v }),
-
-      updateSettings: (patch) =>
-        set((s) => ({
-          settings: { ...s.settings, ...patch },
-        })),
-
-      upsertLawyer: (lawyer) =>
-        set((s) => {
-          const exists = s.lawyers.some((l) => l.id === lawyer.id);
-          return {
-            lawyers: exists
-              ? s.lawyers.map((l) => (l.id === lawyer.id ? lawyer : l))
-              : [...s.lawyers, lawyer],
-          };
-        }),
-
-      removeLawyer: (id) =>
-        set((s) => ({ lawyers: s.lawyers.filter((l) => l.id !== id) })),
-
-      createFromDraft: (draft) => {
-        const state = get();
-        const seq = state.seq + 1;
-        const id = `inv-${crypto.randomUUID().slice(0, 8)}`;
-        const createdAt = todayIso();
-        const path = buildSharePointPath(
-          state.settings,
-          draft.clientName,
-          draft.expediente,
-        );
-        const invoice: Invoice = {
-          id,
-          ref: nextRef(seq),
-          invoiceNumber: "",
-          clientName: draft.clientName.trim(),
-          clientEmail: draft.clientEmail.trim(),
-          clientNif: draft.clientNif.trim(),
-          expediente: draft.expediente.trim(),
-          concepto: draft.concepto.trim(),
-          baseAmount: draft.baseAmount || 0,
-          ivaRate: draft.ivaRate ?? state.settings.defaultIva,
-          suplidos: draft.suplidos || 0,
-          currency: "EUR",
-          lawyerId: draft.lawyerId || state.lawyers[0]?.id || "",
-          remitente: draft.remitente || "abogado",
-          status: "borrador",
-          createdAt,
-          paidAmount: 0,
-          notes: draft.notes || "",
-          sharePointPath: path,
-          sourceFile: draft.sourceFile,
-          dueDate: addDaysIso(
-            createdAt,
-            draft.dueDays ?? state.settings.defaultPaymentDays,
-          ),
-        };
-        const lawyer = state.lawyers.find((l) => l.id === invoice.lawyerId);
-        const admin = buildAdminEmail(invoice, lawyer, state.settings);
-        const client = buildClientEmail(invoice, lawyer, state.settings);
-        invoice.adminEmailSubject = admin.subject;
-        invoice.adminEmailBody = admin.body;
-        invoice.clientEmailSubject = client.subject;
-        invoice.clientEmailBody = client.body;
-
-        set({ invoices: [invoice, ...state.invoices], seq });
-        return invoice;
-      },
-
-      updateInvoice: (id, patch) =>
-        set((s) => ({
-          invoices: s.invoices.map((inv) => {
-            if (inv.id !== id) return inv;
-            const next = { ...inv, ...patch };
-            if (patch.clientName || patch.expediente) {
-              next.sharePointPath = buildSharePointPath(
-                s.settings,
-                next.clientName,
-                next.expediente,
-              );
-            }
-            return next;
-          }),
-        })),
-
-      deleteInvoice: (id) =>
-        set((s) => ({ invoices: s.invoices.filter((i) => i.id !== id) })),
-
-      advanceStatus: (id, status, extra) =>
-        set((s) => ({
-          invoices: s.invoices.map((inv) =>
-            inv.id === id ? { ...inv, status, ...extra } : inv,
-          ),
-        })),
-
-      requestAdmin: (id) => {
-        const state = get();
-        const inv = state.invoices.find((i) => i.id === id);
-        if (!inv) return;
-        const lawyer = state.lawyers.find((l) => l.id === inv.lawyerId);
-        const admin = buildAdminEmail(inv, lawyer, state.settings);
-        set((s) => ({
-          invoices: s.invoices.map((i) =>
-            i.id === id
-              ? {
-                  ...i,
-                  status: "solicitada_admin" as const,
-                  requestedAt: todayIso(),
-                  adminEmailSubject: admin.subject,
-                  adminEmailBody: admin.body,
-                }
-              : i,
-          ),
-        }));
-      },
-
-      markIssued: (id, invoiceNumber) => {
-        const state = get();
-        const inv = state.invoices.find((i) => i.id === id);
-        if (!inv) return;
-        const issuedAt = todayIso();
-        const dueDate =
-          inv.dueDate ||
-          addDaysIso(issuedAt, state.settings.defaultPaymentDays);
-        const updated = {
-          ...inv,
-          invoiceNumber: invoiceNumber.trim(),
-          status: "emitida" as const,
-          issuedAt,
-          dueDate,
-        };
-        const lawyer = state.lawyers.find((l) => l.id === updated.lawyerId);
-        const client = buildClientEmail(updated, lawyer, state.settings);
-        set((s) => ({
-          invoices: s.invoices.map((i) =>
-            i.id === id
-              ? {
-                  ...updated,
-                  clientEmailSubject: client.subject,
-                  clientEmailBody: client.body,
-                }
-              : i,
-          ),
-        }));
-      },
-
-      markSentToClient: (id) => {
-        const state = get();
-        const inv = state.invoices.find((i) => i.id === id);
-        if (!inv) return;
-        const lawyer = state.lawyers.find((l) => l.id === inv.lawyerId);
-        const client = buildClientEmail(inv, lawyer, state.settings);
-        set((s) => ({
-          invoices: s.invoices.map((i) =>
-            i.id === id
-              ? {
-                  ...i,
-                  status: "enviada_cliente" as const,
-                  sentAt: todayIso(),
-                  clientEmailSubject: client.subject,
-                  clientEmailBody: client.body,
-                }
-              : i,
-          ),
-        }));
-      },
-
-      registerPayment: (id, amount, full) =>
-        set((s) => ({
-          invoices: s.invoices.map((inv) => {
-            if (inv.id !== id) return inv;
-            const total = invoiceTotal(inv);
-            const paid = full
-              ? total
-              : Math.min(total, (inv.paidAmount || 0) + amount);
-            const status: InvoiceStatus =
-              paid >= total - 0.001
-                ? "pagada"
-                : paid > 0
-                  ? "parcial"
-                  : inv.status;
-            return {
-              ...inv,
-              paidAmount: paid,
-              status,
-              paidAt: paid >= total - 0.001 ? todayIso() : inv.paidAt,
-            };
-          }),
-        })),
-
-      refreshEmails: (id) => {
-        const state = get();
-        const inv = state.invoices.find((i) => i.id === id);
-        if (!inv) return;
-        const lawyer = state.lawyers.find((l) => l.id === inv.lawyerId);
-        const admin = buildAdminEmail(inv, lawyer, state.settings);
-        const client = buildClientEmail(inv, lawyer, state.settings);
-        set((s) => ({
-          invoices: s.invoices.map((i) =>
-            i.id === id
-              ? {
-                  ...i,
-                  adminEmailSubject: admin.subject,
-                  adminEmailBody: admin.body,
-                  clientEmailSubject: client.subject,
-                  clientEmailBody: client.body,
-                  sharePointPath: buildSharePointPath(
-                    s.settings,
-                    i.clientName,
-                    i.expediente,
-                  ),
-                }
-              : i,
-          ),
-        }));
-      },
-
-      refreshOverdue: () =>
-        set((s) => ({
-          invoices: s.invoices.map(recomputeDueStatus),
-        })),
-
-      resetDemo: () =>
-        set({
-          settings: DEFAULT_SETTINGS,
-          lawyers: DEFAULT_LAWYERS,
-          invoices: createSeedInvoices(DEFAULT_SETTINGS),
-          seq: 42,
-        }),
-
-      getLawyer: (id) => get().lawyers.find((l) => l.id === id),
+  applyBootstrap: (data) =>
+    set({
+      settings: data.settings,
+      lawyers: data.lawyers,
+      invoices: data.invoices,
+      profile: data.profile,
+      seq: data.seq,
+      hydrated: true,
+      loading: false,
+      error: null,
     }),
-    {
-      name: "bufete-facturacion-v1",
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true);
-        state?.refreshOverdue();
-      },
-    },
-  ),
-);
+
+  bootstrap: async () => {
+    set({ loading: true, error: null });
+    try {
+      const data = await getBillingBootstrap();
+      get().applyBootstrap(data);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Error al cargar datos";
+      set({ loading: false, error: message, hydrated: false });
+      throw err;
+    }
+  },
+
+  updateSettings: async (patch) => {
+    const next = { ...get().settings, ...patch };
+    const saved = await saveSettingsFn({ data: next });
+    set({ settings: saved });
+  },
+
+  upsertLawyer: async (lawyer) => {
+    const saved = await upsertLawyerFn({ data: lawyer });
+    set((s) => {
+      const exists = s.lawyers.some((l) => l.id === saved.id);
+      return {
+        lawyers: exists
+          ? s.lawyers.map((l) => (l.id === saved.id ? saved : l))
+          : [...s.lawyers, saved],
+      };
+    });
+  },
+
+  removeLawyer: async (id) => {
+    await removeLawyerFn({ data: { id } });
+    set((s) => ({ lawyers: s.lawyers.filter((l) => l.id !== id) }));
+  },
+
+  createFromDraft: async (draft) => {
+    const inv = await createInvoiceFn({ data: draft });
+    set((s) => ({ invoices: [inv, ...s.invoices] }));
+    return inv;
+  },
+
+  updateInvoice: async (id, patch) => {
+    const inv = await updateInvoiceFn({ data: { id, patch } });
+    set((s) => ({ invoices: replaceInvoice(s.invoices, inv) }));
+  },
+
+  deleteInvoice: async (id) => {
+    await deleteInvoiceFn({ data: { id } });
+    set((s) => ({ invoices: s.invoices.filter((i) => i.id !== id) }));
+  },
+
+  advanceStatus: async (id, status, extra) => {
+    await get().updateInvoice(id, { status, ...extra });
+  },
+
+  requestAdmin: async (id) => {
+    const inv = await requestAdminFn({ data: { id } });
+    set((s) => ({ invoices: replaceInvoice(s.invoices, inv) }));
+  },
+
+  markIssued: async (id, invoiceNumber) => {
+    const inv = await markIssuedFn({ data: { id, invoiceNumber } });
+    set((s) => ({ invoices: replaceInvoice(s.invoices, inv) }));
+  },
+
+  markSentToClient: async (id) => {
+    const inv = await markSentToClientFn({ data: { id } });
+    set((s) => ({ invoices: replaceInvoice(s.invoices, inv) }));
+  },
+
+  registerPayment: async (id, amount, full) => {
+    const inv = await registerPaymentFn({ data: { id, amount, full } });
+    set((s) => ({ invoices: replaceInvoice(s.invoices, inv) }));
+  },
+
+  refreshEmails: async (id) => {
+    const inv = await refreshEmailsFn({ data: { id } });
+    set((s) => ({ invoices: replaceInvoice(s.invoices, inv) }));
+  },
+
+  refreshOverdue: async () => {
+    await get().batchRefreshOverdue([]);
+  },
+
+  batchRequestAdmin: async (ids) => {
+    const { count } = await batchRequestAdminFn({ data: { ids } });
+    await get().bootstrap();
+    return count;
+  },
+
+  batchMarkSentToClient: async (ids) => {
+    const { count } = await batchMarkSentFn({ data: { ids } });
+    await get().bootstrap();
+    return count;
+  },
+
+  batchRefreshOverdue: async (ids = []) => {
+    const { count } = await batchRefreshOverdueFn({ data: { ids } });
+    await get().bootstrap();
+    return count;
+  },
+
+  resetDemo: async () => {
+    const data = await resetDemoFn();
+    get().applyBootstrap(data);
+  },
+
+  sendAdminEmail: async (id, overrides) => {
+    const result = await sendAdminEmailFn({
+      data: { id, subject: overrides?.subject, body: overrides?.body },
+    });
+    set((s) => ({ invoices: replaceInvoice(s.invoices, result.invoice) }));
+    return result;
+  },
+
+  sendClientEmail: async (id, overrides) => {
+    const result = await sendClientEmailFn({
+      data: { id, subject: overrides?.subject, body: overrides?.body },
+    });
+    set((s) => ({ invoices: replaceInvoice(s.invoices, result.invoice) }));
+    return result;
+  },
+
+  getLawyer: (id) => get().lawyers.find((l) => l.id === id),
+}));

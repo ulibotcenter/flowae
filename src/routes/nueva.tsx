@@ -1,12 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { FileUp, Sparkles, Upload } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FileUp, Sparkles, Upload, Bot, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useBillingStore } from "@/lib/billing/store";
 import { parseConceptCsv } from "@/lib/billing/export";
 import { formatCurrency } from "@/lib/billing/format";
 import { invoiceTotal } from "@/lib/billing/templates";
 import type { BillingConceptDraft, RemitenteTipo } from "@/lib/billing/types";
+import {
+  extractConceptFn,
+  getExtractStatusFn,
+} from "@/lib/extract/server-fn";
+import type { ExtractedConcept } from "@/lib/extract/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,13 +47,37 @@ function NuevaPage() {
   const navigate = useNavigate();
   const lawyers = useBillingStore((s) => s.lawyers);
   const settings = useBillingStore((s) => s.settings);
+  const profile = useBillingStore((s) => s.profile);
   const createFromDraft = useBillingStore((s) => s.createFromDraft);
 
+  const defaultLawyerId =
+    profile?.role === "lawyer" && profile.lawyerId
+      ? profile.lawyerId
+      : (lawyers[0]?.id ?? "");
+
   const [draft, setDraft] = useState<BillingConceptDraft>(() =>
-    emptyDraft(lawyers[0]?.id ?? "", settings.defaultIva),
+    emptyDraft(defaultLawyerId, settings.defaultIva),
   );
   const [paste, setPaste] = useState("");
   const [sourceHint, setSourceHint] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [extractMeta, setExtractMeta] = useState<ExtractedConcept | null>(null);
+  const [aiStatus, setAiStatus] = useState<{
+    activeProvider: string;
+    harveyConfigured: boolean;
+    harveyMasked: string | null;
+    fallbackConfigured: boolean;
+    fallbackProvider: string;
+    model: string;
+  } | null>(null);
+
+  useEffect(() => {
+    void getExtractStatusFn()
+      .then(setAiStatus)
+      .catch(() => setAiStatus(null));
+  }, []);
 
   const total = useMemo(
     () =>
@@ -67,28 +96,47 @@ function NuevaPage() {
     setDraft((d) => ({ ...d, [key]: value }));
   }
 
-  function applyParsed(rows: ReturnType<typeof parseConceptCsv>, fileName?: string) {
+  function applyExtracted(
+    data: Partial<BillingConceptDraft> & {
+      confidence?: number;
+      method?: string;
+      warnings?: string[];
+    },
+    source: string,
+  ) {
+    setDraft((d) => ({
+      ...d,
+      clientName: data.clientName?.trim() || d.clientName,
+      clientEmail: data.clientEmail?.trim() || d.clientEmail,
+      clientNif: data.clientNif?.trim() || d.clientNif,
+      expediente: data.expediente?.trim() || d.expediente,
+      concepto: data.concepto?.trim() || d.concepto,
+      baseAmount:
+        typeof data.baseAmount === "number" && data.baseAmount > 0
+          ? data.baseAmount
+          : d.baseAmount,
+      ivaRate:
+        typeof data.ivaRate === "number" && data.ivaRate > 0
+          ? data.ivaRate
+          : d.ivaRate || settings.defaultIva,
+      suplidos:
+        typeof data.suplidos === "number" ? data.suplidos : d.suplidos,
+      notes: data.notes?.trim() || d.notes,
+      sourceFile: source || d.sourceFile,
+    }));
+    setSourceHint(source);
+  }
+
+  function applyParsed(
+    rows: ReturnType<typeof parseConceptCsv>,
+    fileName?: string,
+  ) {
     const row = rows[0];
     if (!row) {
       toast.error("No se detectó ningún concepto en el archivo o texto");
       return;
     }
-    setDraft((d) => ({
-      ...d,
-      clientName: String(row.clientName ?? d.clientName),
-      clientEmail: String(row.clientEmail ?? d.clientEmail),
-      clientNif: String(row.clientNif ?? d.clientNif),
-      expediente: String(row.expediente ?? d.expediente),
-      concepto: String(row.concepto ?? d.concepto),
-      baseAmount:
-        typeof row.baseAmount === "number" ? row.baseAmount : d.baseAmount,
-      ivaRate:
-        typeof row.ivaRate === "number" ? row.ivaRate : d.ivaRate || settings.defaultIva,
-      suplidos: typeof row.suplidos === "number" ? row.suplidos : d.suplidos,
-      notes: String(row.notes ?? d.notes),
-      sourceFile: fileName || d.sourceFile || "importación SharePoint",
-    }));
-    setSourceHint(fileName || "Texto pegado / exportación SharePoint");
+    applyExtracted(row, fileName || "Texto pegado / exportación SharePoint");
     toast.success(
       rows.length > 1
         ? `Se importó el primer concepto de ${rows.length} filas detectadas`
@@ -96,19 +144,107 @@ function NuevaPage() {
     );
   }
 
-  async function onFile(file: File | null) {
-    if (!file) return;
-    const text = await file.text();
-    applyParsed(parseConceptCsv(text), file.name);
+  async function fileToBase64(f: File): Promise<string> {
+    const buf = await f.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  async function onExtractAi() {
+    if (!file && !paste.trim()) {
+      toast.error("Sube un PDF/Word o pega el texto del expediente");
+      return;
+    }
+    setExtracting(true);
+    setExtractMeta(null);
+    try {
+      const payload: {
+        text?: string;
+        fileBase64?: string;
+        fileName?: string;
+        mimeType?: string;
+      } = {};
+      if (file) {
+        payload.fileBase64 = await fileToBase64(file);
+        payload.fileName = file.name;
+        payload.mimeType = file.type;
+      }
+      if (paste.trim()) {
+        payload.text = paste.trim();
+      }
+      // If both, server prefers file text then can use paste? Our server uses file OR we merge:
+      // Send paste as text and file separately - server uses file if present, else text.
+      // If user has both, prefer combining: if file, also append paste in text for extra context
+      if (file && paste.trim()) {
+        // file wins for body; paste passed as notes context by appending after extract on client
+      }
+
+      const result = await extractConceptFn({ data: payload });
+      setExtractMeta(result);
+      applyExtracted(result, file?.name || "Texto pegado (extracción IA/heurística)");
+
+      const confPct = Math.round((result.confidence || 0) * 100);
+      if (result.warnings.length) {
+        toast.message(`Extracción ${result.method} · confianza ~${confPct}%`, {
+          description: result.warnings.slice(0, 3).join(" · "),
+        });
+      } else {
+        toast.success(
+          `Datos extraídos (${result.method}, confianza ~${confPct}%). Revisa y confirma.`,
+        );
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "No se pudo extraer el documento",
+      );
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  async function onFile(selected: File | null) {
+    if (!selected) return;
+    setFile(selected);
+    const name = selected.name.toLowerCase();
+    // CSV/TXT still allow instant local parse
+    if (
+      name.endsWith(".csv") ||
+      name.endsWith(".txt") ||
+      name.endsWith(".tsv") ||
+      selected.type.startsWith("text/")
+    ) {
+      try {
+        const text = await selected.text();
+        setPaste(text.slice(0, 20_000));
+        applyParsed(parseConceptCsv(text), selected.name);
+      } catch {
+        toast.message("Archivo cargado", {
+          description: "Pulsa «Extraer datos con IA» para analizarlo",
+        });
+      }
+    } else {
+      toast.message(`Archivo listo: ${selected.name}`, {
+        description: "Pulsa «Extraer datos con IA» para rellenar el formulario",
+      });
+    }
   }
 
   function onImportPaste() {
     applyParsed(parseConceptCsv(paste));
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!draft.clientName.trim() || !draft.expediente.trim() || !draft.concepto.trim()) {
+    if (
+      !draft.clientName.trim() ||
+      !draft.expediente.trim() ||
+      !draft.concepto.trim()
+    ) {
       toast.error("Cliente, expediente y concepto son obligatorios");
       return;
     }
@@ -116,17 +252,37 @@ function NuevaPage() {
       toast.error("Indica una base imponible válida");
       return;
     }
-    const inv = createFromDraft(draft);
-    toast.success(`Borrador ${inv.ref} creado`);
-    navigate({ to: "/facturas/$id", params: { id: inv.id } });
+    setBusy(true);
+    try {
+      const inv = await createFromDraft({
+        ...draft,
+        lawyerId:
+          profile?.role === "lawyer" && profile.lawyerId
+            ? profile.lawyerId
+            : draft.lawyerId,
+      });
+      toast.success(`Borrador ${inv.ref} creado`);
+      void navigate({ to: "/facturas/$id", params: { id: inv.id } });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al crear");
+    } finally {
+      setBusy(false);
+    }
   }
+
+  const lawyerOptions =
+    profile?.role === "lawyer" && profile.lawyerId
+      ? lawyers.filter((l) => l.id === profile.lawyerId)
+      : lawyers;
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Nueva facturación</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Nueva facturación
+        </h1>
         <p className="mt-1 text-sm text-muted">
-          Extrae el concepto desde Excel/Word de SharePoint o introdúcelo manualmente
+          Extrae el concepto con IA desde PDF/Word o introdúcelo manualmente
         </p>
       </div>
 
@@ -135,52 +291,123 @@ function NuevaPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileUp className="size-4" />
-              Desde SharePoint
+              Documento del expediente
             </CardTitle>
             <CardDescription>
-              Sube un CSV/Excel exportado o pega el contenido del Word/Excel del
-              expediente
+              PDF, Word (.docx), CSV/texto o pega el contenido. Luego extrae los
+              datos al formulario.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            {aiStatus && (
+              <div
+                className={
+                  aiStatus.activeProvider === "harvey"
+                    ? "rounded-lg border border-border bg-success-bg px-3 py-2 text-xs text-success"
+                    : aiStatus.activeProvider !== "none"
+                      ? "rounded-lg border border-border bg-success-bg px-3 py-2 text-xs text-success"
+                      : "rounded-lg border border-border bg-info-bg px-3 py-2 text-xs text-info"
+                }
+              >
+                <Bot className="mr-1 inline size-3.5" />
+                {aiStatus.activeProvider === "harvey" ? (
+                  <>
+                    Extracción con <strong>Harvey</strong>
+                    {aiStatus.harveyMasked
+                      ? ` (${aiStatus.harveyMasked})`
+                      : ""}
+                    . Si falla, se usa extracción local.
+                  </>
+                ) : aiStatus.activeProvider !== "none" ? (
+                  <>
+                    IA activa ({aiStatus.fallbackProvider}
+                    {aiStatus.model ? ` · ${aiStatus.model}` : ""}). Configura
+                    Harvey en Configuración para el despacho.
+                  </>
+                ) : (
+                  <>
+                    Extracción local (heurísticas). Configura Harvey en{" "}
+                    <strong>Configuración</strong> o variables de entorno de
+                    respaldo.
+                  </>
+                )}
+              </div>
+            )}
+
             <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong bg-bg px-4 py-8 text-center transition-colors hover:bg-surface-2">
               <Upload className="size-6 text-muted" />
-              <span className="text-sm font-medium">Subir CSV / texto</span>
+              <span className="text-sm font-medium">
+                {file ? file.name : "Subir PDF, Word o CSV"}
+              </span>
               <span className="text-xs text-muted">
-                Columnas: Cliente; Expediente; Concepto; Base; Email…
+                .pdf · .docx · .csv · .txt (máx. 8 MB)
               </span>
               <input
                 type="file"
-                accept=".csv,.txt,.tsv,text/csv,text/plain"
+                accept=".pdf,.docx,.doc,.csv,.txt,.tsv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/csv,text/plain"
                 className="sr-only"
-                onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+                onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
               />
             </label>
 
             <div className="space-y-2">
-              <Label>Pegar desde Word / Excel</Label>
+              <Label>Pegar texto del Word / expediente</Label>
               <Textarea
-                placeholder={`Cliente: Acme S.L.\nExpediente: CIV-2026-0100\nConcepto: Honorarios fase demanda\nBase: 2500\nEmail: facturas@acme.es\nNIF: B12345678`}
+                placeholder={`Cliente: Acme Legal S.L.\nNIF: B12345678\nExpediente: CIV-2026-0100\nConcepto: Honorarios fase demanda\nBase imponible: 2.500,00 €\nSuplidos: 120\nEmail: facturas@acme.es`}
                 value={paste}
                 onChange={(e) => setPaste(e.target.value)}
                 className="min-h-[140px] font-mono text-xs"
               />
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full"
-                onClick={onImportPaste}
-                disabled={!paste.trim()}
-              >
-                <Sparkles className="size-4" />
-                Extraer concepto
-              </Button>
             </div>
+
+            <Button
+              type="button"
+              className="w-full"
+              disabled={extracting || (!file && !paste.trim())}
+              onClick={() => void onExtractAi()}
+            >
+              {extracting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Sparkles className="size-4" />
+              )}
+              {extracting ? "Extrayendo…" : "Extraer datos con IA"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={onImportPaste}
+              disabled={!paste.trim() || extracting}
+            >
+              Importar solo como CSV / clave:valor
+            </Button>
 
             {sourceHint && (
               <p className="rounded-md bg-info-bg px-3 py-2 text-xs text-info">
                 Origen: {sourceHint}
               </p>
+            )}
+
+            {extractMeta && (
+              <div className="rounded-md border border-border bg-bg px-3 py-2 text-xs text-muted">
+                <p>
+                  Método: <strong className="text-fg">{extractMeta.method}</strong>
+                  {" · "}
+                  Confianza:{" "}
+                  <strong className="text-fg">
+                    {Math.round(extractMeta.confidence * 100)}%
+                  </strong>
+                </p>
+                {extractMeta.warnings.length > 0 && (
+                  <ul className="mt-1 list-inside list-disc">
+                    {extractMeta.warnings.map((w) => (
+                      <li key={w}>{w}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -189,11 +416,12 @@ function NuevaPage() {
           <CardHeader>
             <CardTitle>Datos del concepto</CardTitle>
             <CardDescription>
-              Revisa y completa antes de generar el flujo de facturación
+              Revisa y corrige lo extraído antes de generar el flujo de
+              facturación
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="grid gap-4" onSubmit={onSubmit}>
+            <form className="grid gap-4" onSubmit={(e) => void onSubmit(e)}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Cliente / razón social">
                   <Input
@@ -259,7 +487,9 @@ function NuevaPage() {
                     min={0}
                     step="1"
                     value={draft.ivaRate}
-                    onChange={(e) => patch("ivaRate", Number(e.target.value) || 0)}
+                    onChange={(e) =>
+                      patch("ivaRate", Number(e.target.value) || 0)
+                    }
                   />
                 </Field>
                 <Field label="Suplidos (€)">
@@ -280,8 +510,9 @@ function NuevaPage() {
                   <Select
                     value={draft.lawyerId}
                     onChange={(e) => patch("lawyerId", e.target.value)}
+                    disabled={profile?.role === "lawyer"}
                   >
-                    {lawyers.map((l) => (
+                    {lawyerOptions.map((l) => (
                       <option key={l.id} value={l.id}>
                         {l.name}
                       </option>
@@ -318,8 +549,8 @@ function NuevaPage() {
                     {formatCurrency(total)}
                   </p>
                 </div>
-                <Button type="submit" size="lg">
-                  Crear y abrir flujo
+                <Button type="submit" size="lg" disabled={busy || extracting}>
+                  {busy ? "Creando…" : "Crear y abrir flujo"}
                 </Button>
               </div>
             </form>

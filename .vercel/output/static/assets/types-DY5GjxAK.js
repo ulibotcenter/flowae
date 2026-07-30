@@ -1,1 +1,0 @@
-var e={borrador:`Borrador`,solicitada_admin:`Solicitada a Admin`,emitida:`Emitida`,enviada_cliente:`Enviada al cliente`,pagada:`Pagada`,parcial:`Pago parcial`,vencida:`Vencida`},t=[`borrador`,`solicitada_admin`,`emitida`,`enviada_cliente`,`parcial`,`pagada`,`vencida`];export{t as n,e as t};

@@ -1,5 +1,11 @@
 import type { FirmSettings, Invoice, Lawyer } from "./types";
-import { buildSharePointPath } from "./templates";
+import {
+  buildSharePointPath,
+  DEFAULT_ADMIN_EMAIL_BODY,
+  DEFAULT_ADMIN_EMAIL_SUBJECT,
+  DEFAULT_CLIENT_EMAIL_BODY,
+  DEFAULT_CLIENT_EMAIL_SUBJECT,
+} from "./templates";
 
 export const DEFAULT_SETTINGS: FirmSettings = {
   firmName: "Bufete Lex & Asociados",
@@ -10,6 +16,10 @@ export const DEFAULT_SETTINGS: FirmSettings = {
   defaultPaymentDays: 30,
   sageNote: "Emitir en SAGE con la serie habitual del despacho.",
   lexnextNote: "Registrar también en LEXNEXT vinculando el expediente indicado.",
+  adminEmailSubjectTpl: DEFAULT_ADMIN_EMAIL_SUBJECT,
+  adminEmailBodyTpl: DEFAULT_ADMIN_EMAIL_BODY,
+  clientEmailSubjectTpl: DEFAULT_CLIENT_EMAIL_SUBJECT,
+  clientEmailBodyTpl: DEFAULT_CLIENT_EMAIL_BODY,
 };
 
 export const DEFAULT_LAWYERS: Lawyer[] = [
@@ -51,7 +61,9 @@ function daysFrom(iso: string, n: number): string {
   return d.toISOString();
 }
 
-export function createSeedInvoices(settings: FirmSettings = DEFAULT_SETTINGS): Invoice[] {
+export function createSeedInvoices(
+  settings: FirmSettings = DEFAULT_SETTINGS,
+): Invoice[] {
   const samples: Omit<Invoice, "sharePointPath">[] = [
     {
       id: "inv-1",
@@ -61,7 +73,8 @@ export function createSeedInvoices(settings: FirmSettings = DEFAULT_SETTINGS): I
       clientEmail: "facturacion@norte-inmo.es",
       clientNif: "B12345678",
       expediente: "CIV-2025-0412",
-      concepto: "Honorarios por demanda de desahucio y seguimiento procesal (fase alegaciones)",
+      concepto:
+        "Honorarios por demanda de desahucio y seguimiento procesal (fase alegaciones)",
       baseAmount: 2800,
       ivaRate: 21,
       suplidos: 120,
@@ -86,7 +99,8 @@ export function createSeedInvoices(settings: FirmSettings = DEFAULT_SETTINGS): I
       clientEmail: "juridico@bancomed.es",
       clientNif: "A87654321",
       expediente: "MER-2026-0088",
-      concepto: "Asesoramiento mercantil y revisión de contratos de financiación sindicada",
+      concepto:
+        "Asesoramiento mercantil y revisión de contratos de financiación sindicada",
       baseAmount: 6500,
       ivaRate: 21,
       suplidos: 0,
@@ -112,7 +126,8 @@ export function createSeedInvoices(settings: FirmSettings = DEFAULT_SETTINGS): I
       clientEmail: "admin@consur.es",
       clientNif: "A11223344",
       expediente: "LAB-2026-0015",
-      concepto: "Defensa en procedimiento laboral — preparación de juicio y escritos",
+      concepto:
+        "Defensa en procedimiento laboral — preparación de juicio y escritos",
       baseAmount: 1900,
       ivaRate: 21,
       suplidos: 85.5,
@@ -136,7 +151,8 @@ export function createSeedInvoices(settings: FirmSettings = DEFAULT_SETTINGS): I
       clientEmail: "legal@technova.io",
       clientNif: "B99887766",
       expediente: "IP-2026-0007",
-      concepto: "Registro de marca y oposición — honorarios fase administrativa",
+      concepto:
+        "Registro de marca y oposición — honorarios fase administrativa",
       baseAmount: 1200,
       ivaRate: 21,
       suplidos: 240,
@@ -160,7 +176,8 @@ export function createSeedInvoices(settings: FirmSettings = DEFAULT_SETTINGS): I
       clientEmail: "ana.herrera@email.com",
       clientNif: "12345678Z",
       expediente: "FAM-2026-0022",
-      concepto: "Honorarios por procedimiento de divorcio de mutuo acuerdo (fase convenio)",
+      concepto:
+        "Honorarios por procedimiento de divorcio de mutuo acuerdo (fase convenio)",
       baseAmount: 2200,
       ivaRate: 21,
       suplidos: 0,
@@ -182,7 +199,8 @@ export function createSeedInvoices(settings: FirmSettings = DEFAULT_SETTINGS): I
       clientEmail: "compras@rias-grupo.es",
       clientNif: "A55443322",
       expediente: "ADM-2026-0033",
-      concepto: "Recurso contencioso-administrativo — preparación de demanda",
+      concepto:
+        "Recurso contencioso-administrativo — preparación de demanda",
       baseAmount: 4100,
       ivaRate: 21,
       suplidos: 150,
@@ -222,6 +240,10 @@ export function createSeedInvoices(settings: FirmSettings = DEFAULT_SETTINGS): I
 
   return samples.map((s) => ({
     ...s,
-    sharePointPath: buildSharePointPath(settings, s.clientName, s.expediente),
+    sharePointPath: buildSharePointPath(
+      settings,
+      s.clientName,
+      s.expediente,
+    ),
   }));
 }
