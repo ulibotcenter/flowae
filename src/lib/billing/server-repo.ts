@@ -208,11 +208,22 @@ export async function resolveActor(
   `;
 
   if (rows[0]) {
+    const profile = mapProfile(rows[0]);
+    // Acceso abierto (auth off): el dev-user siempre es Administración
+    if (userId === "dev-user" && profile.role !== "admin") {
+      await sql`
+        update user_profiles
+        set role = 'admin', lawyer_id = null, updated_at = now()
+        where user_id = ${userId}
+      `;
+      profile.role = "admin";
+      profile.lawyerId = null;
+    }
     return {
       userId,
       email,
       name,
-      profile: mapProfile(rows[0]),
+      profile,
     };
   }
 
@@ -232,8 +243,9 @@ export async function resolveActor(
   const isAdminEmail =
     emailLower &&
     emailLower === settings.adminEmail.trim().toLowerCase();
+  const isDevOpenAccess = userId === "dev-user";
 
-  if (isFirst || isAdminEmail) {
+  if (isDevOpenAccess || isFirst || isAdminEmail) {
     role = "admin";
   } else if (emailLower) {
     const match = await sql`

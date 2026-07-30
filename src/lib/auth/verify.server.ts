@@ -9,6 +9,12 @@ import { auth, authConfigured } from "./server";
  * SSR loaders included. So we resolve the user straight from the request cookies
  * via `auth.api.getSession` (no client-minted JWT needed). Never trust a
  * client-supplied user id — only the result of this verification.
+ *
+ * ## Temporary open access (auth off)
+ * Set `VITE_AUTH_ENABLED=false` (build + runtime) to skip login and use the
+ * shared admin `dev-user`. Useful for Vercel demos when OAuth origin is not
+ * ready yet. **Re-enable auth** by removing the var or setting
+ * `VITE_AUTH_ENABLED=true` and redeploying.
  */
 
 /** True when a real database is configured server-side. */
@@ -17,11 +23,14 @@ const databaseConfigured = Boolean(process.env.DATABASE_URL?.trim());
 /** Re-export so callers can branch on it without importing `server.ts`. */
 export { authConfigured };
 
-if (databaseConfigured && !authConfigured) {
-  console.error(
-    "[auth] DATABASE_URL is set but auth is disabled (VITE_AUTH_ENABLED=false) " +
-      "— requireUserId() will reject every request (fail closed) rather than " +
-      "share one dev user on a real database.",
+if (!authConfigured) {
+  console.warn(
+    "[auth] VITE_AUTH_ENABLED=false — acceso abierto con usuario compartido " +
+      "`dev-user` (admin). Reactivar: quitar la variable o poner " +
+      "VITE_AUTH_ENABLED=true y redesplegar." +
+      (databaseConfigured
+        ? " ATENCIÓN: DATABASE_URL está configurada; todos los visitantes comparten el mismo usuario admin."
+        : ""),
   );
 }
 
@@ -73,21 +82,15 @@ export async function getSessionUser(
  * Resolve the current user id for a server function, or throw when unauthorized.
  * Prefer `authMiddleware` (`./middleware`), which calls this for you.
  * - Auth enabled (default) -> the verified session user id; throws
- *   `UnauthorizedError` when signed out. Works in the sandbox preview too (real
- *   sign-in via the baked preview client).
- * - Auth disabled (`VITE_AUTH_ENABLED=false`) + `DATABASE_URL` set -> throw (fail
- *   closed): one shared dev user on a real database would let every visitor
- *   read/write everyone's rows.
- * - Auth disabled + no database -> the shared dev user id.
+ *   `UnauthorizedError` when signed out.
+ * - Auth disabled (`VITE_AUTH_ENABLED=false`) -> shared `dev-user` (admin),
+ *   even when DATABASE_URL is set (temporary open-demo mode for the firm).
+ *   Re-enable auth for production multi-user security.
  */
 export async function requireUserId(bearerToken?: string): Promise<string> {
   if (!authConfigured) {
-    if (databaseConfigured) {
-      throw new Error(
-        "Auth is disabled (VITE_AUTH_ENABLED=false) but DATABASE_URL is set — " +
-          "refusing to fall back to the shared dev user against a real database.",
-      );
-    }
+    // Temporary open access for demos (e.g. flowae.vercel.app without OAuth origin).
+    // All visitors share DEV_USER_ID — intended only while auth is explicitly off.
     return DEV_USER_ID;
   }
   const user = await getSessionUser(bearerToken);

@@ -5,6 +5,7 @@ import {
   DEMO_USER_PASSWORD,
   isDemoLoginEnabled,
 } from "@/lib/demo-config";
+import { getDatabaseConfigError } from "@/lib/db";
 
 /**
  * Provision the shared demo admin account and seed billing data.
@@ -15,6 +16,9 @@ export const ensureDemoUserFn = createServerFn({ method: "POST" }).handler(
     if (!isDemoLoginEnabled()) {
       throw new Error("El modo demostración está desactivado");
     }
+
+    const dbErr = getDatabaseConfigError();
+    if (dbErr) throw new Error(dbErr);
 
     const { auth } = await import("@/lib/auth/server");
     const { getSql } = await import("@/lib/db");

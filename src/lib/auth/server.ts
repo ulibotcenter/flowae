@@ -34,7 +34,12 @@ import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
-import { ensureDbReady, getPglite } from "../db";
+import {
+  DATABASE_REQUIRED_MESSAGE,
+  ensureDbReady,
+  getPglite,
+  isPgliteAllowed,
+} from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GROK_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
@@ -68,8 +73,8 @@ const env = (key: string): string | undefined => {
   return value ? value : undefined;
 };
 
-// Explicit off-switch. The deployer sets `VITE_AUTH_ENABLED=true` when it
-// provisions auth; set it to "false" to force auth off everywhere (dev user).
+// Explicit off-switch for temporary open demos (shared admin dev-user).
+// Set VITE_AUTH_ENABLED=false to disable login; re-enable with true / unset + redeploy.
 const authDisabled = env("VITE_AUTH_ENABLED") === "false";
 
 // Broker federation creds: the deployer injects a per-app client when deployed;
@@ -134,13 +139,22 @@ const grokAuthorizationUrl = `${issuerBase}/api/auth/oauth2/authorize`;
 const grokTokenUrl = `${issuerBase}/api/auth/oauth2/token`;
 const grokUserInfoUrl = `${issuerBase}/api/auth/oauth2/userinfo`;
 
-// Real Postgres when `DATABASE_URL` is set (deployed apps), else the app's
-// embedded PGLite (preview) via a Kysely dialect — so Better Auth persists to the
-// SAME DB as app data, including email/password users. Both use the Better Auth
-// schema from `migrations/0001_auth.sql`.
+// Real Postgres when `DATABASE_URL` is set (deployed apps). Local preview
+// without DATABASE_URL uses embedded PGLite. Serverless (Vercel, …) without
+// DATABASE_URL must NOT load PGLite (ENOENT pglite.data) — fail with a clear
+// message on first use.
 const database = databaseUrl
   ? new Pool({ connectionString: databaseUrl })
-  : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
+  : isPgliteAllowed()
+    ? { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const }
+    : {
+        // Lazy fail: never import PGLite; first auth/db call surfaces the message.
+        dialect: pgliteDialect(async () => {
+          throw new Error(DATABASE_REQUIRED_MESSAGE);
+        }),
+        type: "postgres" as const,
+      };
+
 
 /** Session token cookie name — also read by the live-preview popup completion page. */
 export const SESSION_TOKEN_COOKIE = "__Host-grok-auth.session_token";

@@ -19,7 +19,7 @@ export type AppUser = {
  */
 export const DEV_USER: AppUser = {
   id: "dev-user",
-  displayName: "Dev User",
+  displayName: "Administración (acceso abierto)",
   primaryEmail: "dev@example.com",
   profileImageUrl: null,
   isDevFallback: true,
@@ -40,7 +40,8 @@ export type CurrentUserState = {
  *                            signed out (`isPending: false`). Session comes from
  *                            Better Auth `useSession()` → `/api/auth/get-session`
  *                            (cookie when deployed; bearer in live preview).
- *   - Auth disabled (`VITE_AUTH_ENABLED=false`) -> `DEV_USER`, never pending.
+ *   - Auth disabled (`VITE_AUTH_ENABLED=false`) -> `DEV_USER` (admin), never pending.
+ *     Reactivar auth: quitar la variable o `VITE_AUTH_ENABLED=true` + redesplegar.
  *
  * Protect a route by waiting out `isPending` before acting on `user` —
  * redirecting on `user: null` alone bounces signed-in visitors to sign-in on

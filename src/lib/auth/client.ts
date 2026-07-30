@@ -26,8 +26,17 @@ export const authClient = createAuthClient({
 
 /**
  * True when sign-in UI should be shown. On by default (preview via the baked
- * preview client, deployed apps via the injected per-app client); set
- * `VITE_AUTH_ENABLED=false` to force it off (dev user — see `use-current-user`).
+ * preview client, deployed apps via the injected per-app client).
+ *
+ * ## Desactivar auth temporalmente (demo en Vercel sin OAuth)
+ *   VITE_AUTH_ENABLED=false
+ * (en Vercel: Environment Variables + **Rebuild** — es variable Vite de build)
+ * Entra con el usuario compartido admin `dev-user` (ver `use-current-user`).
+ *
+ * ## Reactivar auth
+ *   - Quitar `VITE_AUTH_ENABLED`, o
+ *   - Poner `VITE_AUTH_ENABLED=true`
+ * y volver a desplegar. El código de Better Auth / login no se borra.
  */
 export const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== "false";
 

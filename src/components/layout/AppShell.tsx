@@ -16,6 +16,7 @@ import { useBillingStore } from "@/lib/billing/store";
 import { isHoyItem } from "@/lib/billing/priority";
 import { ROLE_LABELS } from "@/lib/billing/types";
 import { UserButton } from "@/lib/auth/gates";
+import { authEnabled } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { isDemoModeActive } from "@/lib/auth/demo-login";
 
@@ -82,7 +83,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        {demoMode && (
+        {!authEnabled && (
+          <div className="mx-3 mt-3 flex items-center gap-2 rounded-lg bg-warn/25 px-3 py-2 text-xs font-semibold text-sidebar-fg">
+            <FlaskConical className="size-3.5 shrink-0" />
+            Acceso abierto (sin login)
+          </div>
+        )}
+        {demoMode && authEnabled && (
           <div className="mx-3 mt-3 flex items-center gap-2 rounded-lg bg-warn/25 px-3 py-2 text-xs font-semibold text-sidebar-fg">
             <FlaskConical className="size-3.5 shrink-0" />
             Modo demostración
@@ -135,7 +142,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
-        {demoMode && (
+        {!authEnabled && (
+          <div className="flex items-center justify-center gap-2 bg-warn px-3 py-1.5 text-center text-xs font-semibold text-white">
+            <FlaskConical className="size-3.5 shrink-0" />
+            Acceso abierto temporal — auth desactivada (VITE_AUTH_ENABLED=false)
+          </div>
+        )}
+        {demoMode && authEnabled && (
           <div className="flex items-center justify-center gap-2 bg-warn px-3 py-1.5 text-center text-xs font-semibold text-white">
             <FlaskConical className="size-3.5 shrink-0" />
             Estás en modo demostración — los datos son de ejemplo
@@ -158,7 +171,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Optimización de facturación y cobros del despacho
             </p>
           </div>
-          {demoMode && (
+          {!authEnabled && (
+            <span className="hidden items-center gap-1 rounded-full bg-warn-bg px-2.5 py-1 text-[11px] font-semibold text-warn sm:inline-flex">
+              <FlaskConical className="size-3" />
+              Acceso abierto
+            </span>
+          )}
+          {demoMode && authEnabled && (
             <span className="hidden items-center gap-1 rounded-full bg-warn-bg px-2.5 py-1 text-[11px] font-semibold text-warn sm:inline-flex">
               <FlaskConical className="size-3" />
               Demo
@@ -169,13 +188,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="h-8 w-8 animate-pulse rounded-full bg-surface-2" />
             ) : user ? (
               <UserButton />
-            ) : (
+            ) : authEnabled ? (
               <Link
                 to="/login"
                 className="text-sm font-medium text-accent hover:underline"
               >
                 Entrar
               </Link>
+            ) : (
+              <UserButton />
             )}
           </div>
         </header>

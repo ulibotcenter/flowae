@@ -16,7 +16,7 @@ async function actorFromContext(userId: string) {
 
   if (userId === "dev-user") {
     email = "dev@example.com";
-    name = "Dev User";
+    name = "Administración (acceso abierto)";
   } else {
     try {
       const { getSql } = await import("@/lib/db");
